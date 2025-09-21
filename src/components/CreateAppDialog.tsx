@@ -92,7 +92,11 @@ export function CreateAppDialog({
         <DialogHeader>
           <DialogTitle>Create New App</DialogTitle>
           <DialogDescription>
-            {`Create a new app using the ${template?.title} template.`}
+            {template
+              ? `Create a new app using the ${template.title} template.`
+              : selectedBackendFramework
+              ? `Create a new app with the ${selectedBackendFramework} backend framework.`
+              : "Create a new app."}
           </DialogDescription>
         </DialogHeader>
 

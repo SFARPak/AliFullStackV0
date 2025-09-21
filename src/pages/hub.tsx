@@ -5,8 +5,10 @@ import { useRouter } from "@tanstack/react-router";
 import { useSettings } from "@/hooks/useSettings";
 import { useTemplates } from "@/hooks/useTemplates";
 import { TemplateCard } from "@/components/TemplateCard";
+import { BackendFrameworkCard } from "@/components/BackendFrameworkCard";
 import { CreateAppDialog } from "@/components/CreateAppDialog";
 import { NeonConnector } from "@/components/NeonConnector";
+import { backendFrameworksData, type BackendFramework } from "@/shared/backendFrameworks";
 
 const HubPage: React.FC = () => {
   const router = useRouter();
@@ -19,6 +21,10 @@ const HubPage: React.FC = () => {
     updateSettings({ selectedTemplateId: templateId });
   };
 
+  const handleBackendFrameworkSelect = (frameworkId: string) => {
+    updateSettings({ selectedBackendFramework: frameworkId });
+  };
+
   const handleCreateApp = () => {
     setIsCreateDialogOpen(true);
   };
@@ -27,6 +33,8 @@ const HubPage: React.FC = () => {
     templates?.filter((template) => template.isOfficial) || [];
   const communityTemplates =
     templates?.filter((template) => !template.isOfficial) || [];
+
+  const selectedBackendFramework = settings?.selectedBackendFramework;
 
   return (
     <div className="min-h-screen px-8 py-4">
@@ -70,6 +78,24 @@ const HubPage: React.FC = () => {
           </section>
         )}
 
+        {/* Backend Frameworks Section */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+            Backend frameworks
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {backendFrameworksData.map((framework) => (
+              <BackendFrameworkCard
+                key={framework.id}
+                framework={framework}
+                isSelected={framework.id === selectedBackendFramework}
+                onSelect={handleBackendFrameworkSelect}
+                onCreateApp={handleCreateApp}
+              />
+            ))}
+          </div>
+        </section>
+
         {/* Community Templates Section */}
         {communityTemplates.length > 0 && (
           <section className="mb-12">
@@ -97,6 +123,7 @@ const HubPage: React.FC = () => {
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         template={templates.find((t) => t.id === settings?.selectedTemplateId)}
+        selectedBackendFramework={settings?.selectedBackendFramework}
       />
     </div>
   );
