@@ -1,0 +1,45 @@
+<svg width="600" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="flask-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#000000;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#333333;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="400" fill="url(#flask-bg)"/>
+
+  <!-- Terminal/command line style -->
+  <rect x="20" y="20" width="560" height="360" rx="8" fill="#1e1e1e" opacity="0.95"/>
+
+  <!-- Terminal header -->
+  <circle cx="35" cy="40" r="6" fill="#ff5f57"/>
+  <circle cx="55" cy="40" r="6" fill="#ffbd2e"/>
+  <circle cx="75" cy="40" r="6" fill="#28ca42"/>
+  <text x="100" y="47" font-family="Arial, sans-serif" font-size="12" fill="#cccccc">flask-app — -bash — 80×24</text>
+
+  <!-- Command prompt -->
+  <text x="35" y="80" font-family="monospace" font-size="14" fill="#00ff00">$ </text>
+  <text x="55" y="80" font-family="monospace" font-size="14" fill="#cccccc">python app.py</text>
+
+  <!-- Flask output -->
+  <text x="35" y="110" font-family="monospace" font-size="12" fill="#00ff00">* Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)</text>
+  <text x="35" y="130" font-family="monospace" font-size="12" fill="#cccccc">* Restarting with stat</text>
+  <text x="35" y="145" font-family="monospace" font-size="12" fill="#00ff00">* Debugger is active!</text>
+  <text x="35" y="160" font-family="monospace" font-size="12" fill="#cccccc">* Debugger PIN: 123-456-789</text>
+
+  <!-- Browser preview area -->
+  <rect x="100" y="190" width="400" height="150" rx="4" fill="white"/>
+  <rect x="100" y="190" width="400" height="30" fill="#f8f9fa" stroke="#e9ecef"/>
+  <text x="120" y="210" font-family="Arial, sans-serif" font-size="12" fill="#666">http://127.0.0.1:5000/</text>
+
+  <!-- Flask welcome content -->
+  <text x="300" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#000">Hello World!</text>
+  <text x="300" y="275" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666">Welcome to Flask</text>
+  <text x="300" y="295" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#999">A lightweight WSGI web application framework</text>
+
+  <!-- Flask logo -->
+  <circle cx="520" cy="300" r="25" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="520" cy="285" r="3" fill="#ffffff"/>
+  <rect x="515" y="300" width="10" height="15" fill="#ffffff"/>
+</svg>

@@ -1,0 +1,37 @@
+<svg width="600" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fastapi-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#009688;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4dd0e1;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="400" fill="url(#fastapi-bg)"/>
+
+  <!-- Header -->
+  <rect x="0" y="0" width="600" height="80" fill="#ffffff" opacity="0.95"/>
+  <text x="30" y="35" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#009688">FastAPI</text>
+  <text x="30" y="55" font-family="Arial, sans-serif" font-size="14" fill="#666">API Documentation</text>
+
+  <!-- Main content area -->
+  <rect x="30" y="100" width="540" height="270" rx="8" fill="white" opacity="0.95"/>
+
+  <!-- API endpoint -->
+  <rect x="50" y="120" width="480" height="60" rx="4" fill="#f8f9fa" stroke="#e9ecef"/>
+  <text x="70" y="140" font-family="monospace" font-size="16" font-weight="bold" fill="#28a745">GET</text>
+  <text x="120" y="140" font-family="monospace" font-size="16" fill="#333">/api/v1/items</text>
+  <text x="70" y="160" font-family="Arial, sans-serif" font-size="12" fill="#666">Get all items from the database</text>
+
+  <!-- Response example -->
+  <rect x="50" y="200" width="480" height="80" rx="4" fill="#f8f9fa" stroke="#e9ecef"/>
+  <text x="70" y="220" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">Response 200</text>
+  <text x="70" y="240" font-family="monospace" font-size="12" fill="#28a745">[{</text>
+  <text x="90" y="255" font-family="monospace" font-size="12" fill="#666">"id": 1,</text>
+  <text x="90" y="270" font-family="monospace" font-size="12" fill="#666">"name": "Sample Item"</text>
+  <text x="70" y="270" font-family="monospace" font-size="12" fill="#28a745">}]</text>
+
+  <!-- Interactive badge -->
+  <rect x="450" y="30" width="100" height="25" rx="12" fill="#4CAF50"/>
+  <text x="500" y="47" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Interactive</text>
+</svg>
