@@ -1647,7 +1647,7 @@ async function installDependenciesForFramework(projectPath: string, framework: s
   });
 }
 
-async function startBackendServer(projectPath: string, framework: string) {
+export async function startBackendServer(projectPath: string, framework: string) {
   const startCommand = getStartCommandForFramework(framework);
 
   return new Promise<void>((resolve, reject) => {

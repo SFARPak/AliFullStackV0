@@ -188,7 +188,7 @@ export function registerChatHandlers() {
       throw new Error("App not found");
     }
 
-    const backendPath = getDyadAppPath(app.path, "backend");
+    const backendPath = path.join(getDyadAppPath(app.path), "backend");
 
     // Check if backend directory exists
     if (!fs.existsSync(backendPath)) {
