@@ -916,8 +916,45 @@ Available packages and libraries:
   const template = await getTemplateOrThrow(templateId);
   logger.info(`Template found: ${template.title}, isFrontend: ${template.isFrontend}, githubUrl: ${template.githubUrl}`);
 
+  // For templates without GitHub URL (like "react"), use scaffold copying
   if (!template.githubUrl) {
-    throw new Error(`Template ${templateId} has no GitHub URL`);
+    if (templateId === "react") {
+      logger.info(`Template ${templateId} has no GitHub URL, using scaffold copying`);
+      // Use scaffold copying for React template
+      const scaffoldPath = "/Volumes/Farhan/Desktop/AliFullstack/scaffold";
+
+      logger.info(`Using scaffold path: ${scaffoldPath}`);
+      if (!fs.existsSync(scaffoldPath)) {
+        logger.error(`Scaffold directory not found at: ${scaffoldPath}`);
+        throw new Error(`Scaffold directory not found at: ${scaffoldPath}`);
+      }
+
+      // Copy scaffold to frontend
+      await fs.copy(scaffoldPath, frontendPath, {
+        overwrite: true,
+        filter: (src, dest) => {
+          const relativePath = path.relative(scaffoldPath, src);
+          return !relativePath.includes('node_modules') && !relativePath.includes('.git');
+        }
+      });
+
+      logger.info(`Successfully copied scaffold to ${frontendPath}`);
+
+      // Install frontend dependencies
+      try {
+        const packageJsonPath = path.join(frontendPath, "package.json");
+        if (fs.existsSync(packageJsonPath)) {
+          logger.info(`Installing React scaffold dependencies in ${frontendPath}`);
+          await installDependenciesForFramework(frontendPath, "nodejs");
+        }
+      } catch (installError) {
+        logger.warn(`Failed to install React scaffold dependencies:`, installError);
+      }
+
+      return;
+    } else {
+      throw new Error(`Template ${templateId} has no GitHub URL`);
+    }
   }
 
   const repoCachePath = await cloneRepo(template.githubUrl);
