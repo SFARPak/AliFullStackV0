@@ -483,52 +483,53 @@ export async function createFromTemplate({
   fullAppPath,
   selectedTemplateId,
   selectedBackendFramework,
+  isFullStack,
 }: {
   fullAppPath: string;
   selectedTemplateId?: string;
   selectedBackendFramework?: string | null;
+  isFullStack?: boolean;
 }) {
-  // EMERGENCY DEBUG: Create debug file at function start
-  try {
-    const debugStartContent = `DEBUG: createFromTemplate called at ${new Date().toISOString()}\nfullAppPath: ${fullAppPath}\nselectedTemplateId: ${selectedTemplateId}\nselectedBackendFramework: ${selectedBackendFramework}`;
-    const debugPath = path.join(fullAppPath, 'DEBUG_FUNCTION_START.txt');
-    await fs.writeFile(debugPath, debugStartContent);
-    console.log('✅ EMERGENCY DEBUG: Function start debug file created');
-  } catch (debugError) {
-    console.error('❌ EMERGENCY DEBUG: Failed to create function start debug file:', debugError);
-  }
-
   const templateId = selectedTemplateId || readSettings().selectedTemplateId;
-  logger.info(`Creating app with template: ${templateId}, backend: ${selectedBackendFramework}`);
+  logger.info(`Creating app with template: ${templateId}, backend: ${selectedBackendFramework}, isFullStack: ${isFullStack}`);
 
   // Create frontend directory
   const frontendPath = path.join(fullAppPath, "frontend");
   logger.info(`Creating frontend directory: ${frontendPath}`);
   await fs.ensureDir(frontendPath);
 
-  // Only create backend directory if a backend framework is selected
+  // For full stack, always create both frontend and backend
+  // For frontend-only, create frontend and optionally backend
+  // For backend-only, create backend
   let backendPath: string | null = null;
-  if (selectedBackendFramework) {
+
+  if (isFullStack || selectedBackendFramework) {
     backendPath = path.join(fullAppPath, "backend");
     logger.info(`Creating backend directory: ${backendPath}`);
     await fs.ensureDir(backendPath);
   }
 
   // Set up selected backend framework if specified
-  if (selectedBackendFramework && backendPath) {
+  if ((isFullStack || selectedBackendFramework) && backendPath) {
     logger.info(`Setting up backend framework: ${selectedBackendFramework}`);
-    await setupBackendFramework(backendPath, selectedBackendFramework);
+    await setupBackendFramework(backendPath, selectedBackendFramework!);
   }
 
-  if (templateId === "react") {
+  // For full stack, skip template processing and use scaffold copying directly
+  if (isFullStack) {
+    if (!selectedBackendFramework) {
+      throw new Error("Backend framework must be selected for Full Stack app creation. Please select a backend framework in the Hub first.");
+    }
+    // Use scaffold copying for frontend (React) and backend framework setup
+    logger.info(`Full stack mode: Using scaffold for frontend and ${selectedBackendFramework} for backend`);
     // For React template, put the frontend code in the frontend folder
-    logger.info(`Setting up React template in frontend folder`);
+    logger.info(`Setting up React scaffold in frontend folder`);
 
     // EMERGENCY DEBUG: Create a debug file immediately
     try {
-      const debugContent = `DEBUG: React template section reached at ${new Date().toISOString()}\nTemplate ID: ${templateId}`;
-      await fs.writeFile(path.join(frontendPath, 'DEBUG_REACT_TEMPLATE.txt'), debugContent);
-      logger.info('✅ DEBUG: Emergency debug file created');
+      const debugContent = `DEBUG: Full stack scaffold section reached at ${new Date().toISOString()}\nBackend Framework: ${selectedBackendFramework}`;
+      await fs.writeFile(path.join(frontendPath, 'DEBUG_FULL_STACK.txt'), debugContent);
+      logger.info('✅ DEBUG: Full stack debug file created');
     } catch (debugError) {
       logger.error('❌ DEBUG: Failed to create debug file:', debugError);
     }
