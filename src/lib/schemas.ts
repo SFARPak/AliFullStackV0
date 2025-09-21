@@ -128,7 +128,7 @@ export type RuntimeMode = z.infer<typeof RuntimeModeSchema>;
 export const RuntimeMode2Schema = z.enum(["host", "docker"]);
 export type RuntimeMode2 = z.infer<typeof RuntimeMode2Schema>;
 
-export const ChatModeSchema = z.enum(["build", "ask"]);
+export const ChatModeSchema = z.enum(["build", "ask", "backend"]);
 export type ChatMode = z.infer<typeof ChatModeSchema>;
 
 export const GitHubSecretsSchema = z.object({
@@ -223,6 +223,7 @@ export const UserSettingsSchema = z.object({
   selectedTemplateId: z.string(),
   enableSupabaseWriteSqlMigration: z.boolean().optional(),
   selectedChatMode: ChatModeSchema.optional(),
+  selectedBackendFramework: z.string().optional(),
   acceptedCommunityCode: z.boolean().optional(),
 
   enableAutoFixProblems: z.boolean().optional(),

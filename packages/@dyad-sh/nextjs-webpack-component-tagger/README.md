@@ -1,15 +1,15 @@
-# @dyad-sh/nextjs-webpack-component-tagger
+# @SFARPak/nextjs-webpack-component-tagger
 
 A webpack loader for Next.js that automatically adds `data-dyad-id` and `data-dyad-name` attributes to your React components. This is useful for identifying components in the DOM, for example for testing or analytics.
 
 ## Installation
 
 ```bash
-npm install @dyad-sh/nextjs-webpack-component-tagger
+npm install @SFARPak/nextjs-webpack-component-tagger
 # or
-yarn add @dyad-sh/nextjs-webpack-component-tagger
+yarn add @SFARPak/nextjs-webpack-component-tagger
 # or
-pnpm add @dyad-sh/nextjs-webpack-component-tagger
+pnpm add @SFARPak/nextjs-webpack-component-tagger
 ```
 
 ## Usage
@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
         test: /\.(jsx|tsx)$/,
         exclude: /node_modules/,
         enforce: "pre",
-        use: "@dyad-sh/nextjs-webpack-component-tagger",
+        use: "@SFARPak/nextjs-webpack-component-tagger",
       });
     }
     return config;
@@ -49,7 +49,7 @@ Bump it to an alpha version and test in Dyad app, eg. `"version": "0.0.1-alpha.0
 Then publish it:
 
 ```sh
-cd packages/@dyad-sh/nextjs-webpack-component-tagger/ && npm run prepublishOnly && npm publish
+cd packages/@SFARPak/nextjs-webpack-component-tagger/ && npm run prepublishOnly && npm publish
 ```
 
 Update the package version in the nextjs-template repo in your personal fork.

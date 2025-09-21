@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   MoreVertical,
-  MessageCircle,
+  Code,
+  Server,
   Pencil,
   Folder,
 } from "lucide-react";
@@ -329,18 +330,37 @@ export default function AppDetailsPage() {
         </div>
         <div className="mt-4 flex flex-col gap-2">
           <Button
-            onClick={() => {
+            onClick={async () => {
               if (!appId) {
                 console.error("No app id found");
                 return;
               }
+              // Set chat mode to frontend (build) before navigating
+              await IpcClient.getInstance().setUserSettings({ selectedChatMode: "build" });
               navigate({ to: "/chat" });
             }}
             className="cursor-pointer w-full py-5 flex justify-center items-center gap-2"
             size="lg"
           >
-            Open in Chat
-            <MessageCircle className="h-4 w-4" />
+            Frontend Development
+            <Code className="h-4 w-4" />
+          </Button>
+          <Button
+            onClick={async () => {
+              if (!appId) {
+                console.error("No app id found");
+                return;
+              }
+              // Set chat mode to backend before navigating
+              await IpcClient.getInstance().setUserSettings({ selectedChatMode: "backend" });
+              navigate({ to: "/chat" });
+            }}
+            className="cursor-pointer w-full py-5 flex justify-center items-center gap-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-900 dark:hover:bg-gray-800"
+            size="lg"
+            variant="outline"
+          >
+            Backend Development
+            <Server className="h-4 w-4" />
           </Button>
           <div className="border border-gray-200 rounded-md p-4">
             <GitHubConnector appId={appId} folderName={selectedApp.path} />

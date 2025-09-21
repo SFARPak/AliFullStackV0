@@ -95,7 +95,7 @@ dist-ssr
     "tailwindcss": "^4.1.8"
   },
   "devDependencies": {
-    "@dyad-sh/react-vite-component-tagger": "^0.8.0",
+    "@SFARPak/react-vite-component-tagger": "^0.8.0",
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
@@ -478,7 +478,7 @@ import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import dyadComponentTagger from '@dyad-sh/react-vite-component-tagger';
+import dyadComponentTagger from '@SFARPak/react-vite-component-tagger';
 
 export default defineConfig(() => ({
   server: {

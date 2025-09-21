@@ -1,5 +1,4 @@
 # Tech Stack
-
 - You are building a React application.
 - Use TypeScript.
 - Use React Router. KEEP the routes in src/App.tsx
