@@ -1218,4 +1218,21 @@ export class IpcClient {
   public async createMissingFolder(params: { appId: number; folderType: "frontend" | "backend"; templateId?: string; backendFramework?: string }): Promise<void> {
     return this.ipcRenderer.invoke("create-missing-folder", params);
   }
+
+  // Roo Code authentication methods
+  public async roocodeLogin(): Promise<void> {
+    return this.ipcRenderer.invoke("roocode:login");
+  }
+
+  public async roocodeLogout(): Promise<void> {
+    return this.ipcRenderer.invoke("roocode:logout");
+  }
+
+  public async roocodeAuthStatus(): Promise<any> {
+    return this.ipcRenderer.invoke("roocode:auth-status");
+  }
+
+  public async roocodeAuthCallback(code: string, state: string): Promise<void> {
+    return this.ipcRenderer.invoke("roocode:auth-callback", code, state);
+  }
 }

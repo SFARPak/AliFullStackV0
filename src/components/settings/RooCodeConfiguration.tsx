@@ -42,7 +42,7 @@ export function RooCodeConfiguration({ provider }: RooCodeConfigurationProps) {
       }
 
       const ipcClient = IpcClient.getInstance();
-      await ipcClient.invoke("roocode:auth-callback", data.code, data.state);
+      await ipcClient.roocodeAuthCallback(data.code, data.state);
       await checkAuthStatus(); // Refresh auth status
     } catch (error) {
       console.error("Failed to handle Roo Code auth callback:", error);
@@ -61,7 +61,7 @@ export function RooCodeConfiguration({ provider }: RooCodeConfigurationProps) {
       }
 
       const ipcClient = IpcClient.getInstance();
-      const status = await ipcClient.invoke("roocode:auth-status");
+      const status = await ipcClient.roocodeAuthStatus();
       setAuthState(status);
     } catch (error) {
       console.error("Failed to check Roo Code auth status:", error);
@@ -80,7 +80,7 @@ export function RooCodeConfiguration({ provider }: RooCodeConfigurationProps) {
       }
 
       const ipcClient = IpcClient.getInstance();
-      await ipcClient.invoke("roocode:login");
+      await ipcClient.roocodeLogin();
       // The login process will open a browser window and handle the callback
     } catch (error) {
       console.error("Failed to initiate Roo Code login:", error);
@@ -99,7 +99,7 @@ export function RooCodeConfiguration({ provider }: RooCodeConfigurationProps) {
       }
 
       const ipcClient = IpcClient.getInstance();
-      await ipcClient.invoke("roocode:logout");
+      await ipcClient.roocodeLogout();
       await checkAuthStatus(); // Refresh auth status
     } catch (error) {
       console.error("Failed to logout from Roo Code:", error);

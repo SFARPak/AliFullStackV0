@@ -574,6 +574,7 @@ export function registerAppHandlers() {
         fullAppPath,
         selectedTemplateId: params.selectedTemplateId,
         selectedBackendFramework: params.selectedBackendFramework,
+        isFullStack: params.isFullStack,
       });
 
       // Initialize git repo and create first commit

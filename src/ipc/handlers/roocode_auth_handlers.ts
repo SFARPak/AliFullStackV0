@@ -155,7 +155,7 @@ async function handleRooCodeLogin(): Promise<void> {
 
     // Store state for verification
     const authData = loadAuthData();
-    authData[AUTH_STATE_KEY] = state;
+    (authData as any)[AUTH_STATE_KEY] = state;
     saveAuthData(authData);
 
     // Generate authorization URL
@@ -186,11 +186,7 @@ async function handleRooCodeLogin(): Promise<void> {
 
     // Open browser for authentication
     try {
-      const success = await shell.openExternal(authUrl);
-      if (!success) {
-        logger.warn("shell.openExternal returned false - browser may not have opened");
-        throw new Error("Failed to open browser for authentication");
-      }
+      await shell.openExternal(authUrl);
       logger.info("Opened Roo Code authentication URL in browser");
     } catch (shellError) {
       logger.error("shell.openExternal failed:", shellError);
@@ -206,7 +202,7 @@ async function handleRooCodeCallback(code: string, state: string): Promise<void>
   try {
     // Verify state parameter
     const authData = loadAuthData();
-    const storedState = authData[AUTH_STATE_KEY];
+    const storedState = (authData as any)[AUTH_STATE_KEY];
 
     if (state !== storedState) {
       throw new Error("Invalid state parameter. Authentication request may have been tampered with.");
