@@ -52,6 +52,41 @@ export function ChatModeSelector({ appId }: { appId?: number }) {
       }
     }
 
+    // If switching to fullstack mode and we have an app ID, check if frontend and backend folders exist
+    if (newMode === "fullstack" && appId) {
+      try {
+        setIsCreatingFolder(true);
+        // Get the app to check its structure
+        const app = await IpcClient.getInstance().getApp(appId);
+        const frontendFiles = app.files.filter((file: string) => file.startsWith("frontend/"));
+        const backendFiles = app.files.filter((file: string) => file.startsWith("backend/"));
+
+        // If no frontend files exist, create the frontend folder
+        if (frontendFiles.length === 0) {
+          await IpcClient.getInstance().createMissingFolder({
+            appId,
+            folderType: "frontend",
+            templateId: settings?.selectedTemplateId,
+          });
+        }
+
+        // If no backend files exist, create the backend folder
+        if (backendFiles.length === 0) {
+          await IpcClient.getInstance().createMissingFolder({
+            appId,
+            folderType: "backend",
+            backendFramework: settings?.selectedBackendFramework,
+          });
+        }
+      } catch (error) {
+        console.error("Error creating fullstack folders:", error);
+        showError(error);
+        return; // Don't change the mode if folder creation failed
+      } finally {
+        setIsCreatingFolder(false);
+      }
+    }
+
     // Update the chat mode
     updateSettings({ selectedChatMode: newMode });
   };
@@ -64,6 +99,8 @@ export function ChatModeSelector({ appId }: { appId?: number }) {
         return "Ask";
       case "backend":
         return "Backend";
+      case "fullstack":
+        return "Full Stack";
       default:
         return "Build";
     }
@@ -119,6 +156,14 @@ export function ChatModeSelector({ appId }: { appId?: number }) {
             <span className="font-medium">Backend</span>
             <span className="text-xs text-muted-foreground">
               Backend development with Roo-Code
+            </span>
+          </div>
+        </SelectItem>
+        <SelectItem value="fullstack">
+          <div className="flex flex-col items-start">
+            <span className="font-medium">Full Stack</span>
+            <span className="text-xs text-muted-foreground">
+              Full stack development (frontend + backend)
             </span>
           </div>
         </SelectItem>

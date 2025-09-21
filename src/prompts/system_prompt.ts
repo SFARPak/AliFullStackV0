@@ -258,7 +258,7 @@ export const constructSystemPrompt = ({
   chatMode = "build",
 }: {
   aiRules: string | undefined;
-  chatMode?: "build" | "ask" | "backend";
+  chatMode?: "build" | "ask" | "backend" | "fullstack";
 }) => {
   let systemPrompt;
   let rules = aiRules ?? DEFAULT_AI_RULES;
@@ -268,6 +268,10 @@ export const constructSystemPrompt = ({
   } else if (chatMode === "backend") {
     systemPrompt = BACKEND_BUILD_SYSTEM_PROMPT;
     rules = aiRules ?? BACKEND_AI_RULES; // Use backend rules for backend mode
+  } else if (chatMode === "fullstack") {
+    systemPrompt = BUILD_SYSTEM_PROMPT; // Use build mode for fullstack, but could customize later
+    // For fullstack, we might want to combine both frontend and backend rules
+    rules = aiRules ?? DEFAULT_AI_RULES;
   } else {
     systemPrompt = BUILD_SYSTEM_PROMPT;
   }
