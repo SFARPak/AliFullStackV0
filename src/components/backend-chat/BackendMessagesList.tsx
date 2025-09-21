@@ -4,7 +4,7 @@ import { BackendChatMessage } from "./BackendChatMessage";
 
 interface BackendMessagesListProps {
   messages: Message[];
-  messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  messagesEndRef: React.RefObject<HTMLDivElement>;
 }
 
 export const BackendMessagesList = forwardRef<

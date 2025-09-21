@@ -58,12 +58,17 @@ export function BackendVersionPane({ isVisible, onClose }: BackendVersionPanePro
                     <p className="text-sm text-gray-900 dark:text-gray-100 mb-2">
                       {version.message || "Backend changes"}
                     </p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock size={12} />
-                      <span>
-                        {formatDistanceToNow(new Date(version.timestamp * 1000), { addSuffix: true })}
-                      </span>
-                    </div>
+                    {version.author && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <GitBranch size={12} />
+                        <span>{version.author.name}</span>
+                        <span>•</span>
+                        <Clock size={12} />
+                        <span>
+                          {formatDistanceToNow(new Date(version.date), { addSuffix: true })}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { useState, useEffect, useCallback } from "react";
-import log from "electron-log";
 
 import { useSettings } from "@/hooks/useSettings";
 import { IpcClient } from "@/ipc/ipc_client";
@@ -67,7 +66,6 @@ import { selectedComponentPreviewAtom } from "@/atoms/previewAtoms";
 import { SelectedComponentDisplay } from "../chat/SelectedComponentDisplay";
 
 const showTokenBarAtom = atom(false);
-const logger = log.scope("BackendChatInput");
 
 export function BackendChatInput({ chatId }: { chatId?: number }) {
   const posthog = usePostHog();
@@ -99,25 +97,6 @@ export function BackendChatInput({ chatId }: { chatId?: number }) {
     clearAttachments,
     handlePaste,
   } = useAttachments();
-
-  // Auto-start backend server when entering backend mode
-  useEffect(() => {
-    const startBackendServer = async () => {
-      if (!appId) return;
-
-      try {
-        logger.info(`Auto-starting backend server for app: ${appId}`);
-        await IpcClient.getInstance().startBackendServer(appId);
-        logger.info("Backend server started successfully");
-      } catch (error) {
-        logger.error("Failed to auto-start backend server:", error);
-      }
-    };
-
-    // Small delay to ensure component is fully mounted
-    const timeoutId = setTimeout(startBackendServer, 1000);
-    return () => clearTimeout(timeoutId);
-  }, [appId]);
 
   // Use the hook to fetch the proposal
   const {
@@ -349,7 +328,7 @@ export function BackendChatInput({ chatId }: { chatId?: number }) {
           </div>
           <div className="pl-2 pr-1 flex items-center justify-between pb-2">
             <div className="flex items-center">
-              <ChatInputControls showContextFilesPicker={true} appId={appId ?? undefined} />
+              <ChatInputControls showContextFilesPicker={true} appId={appId} />
               {/* File attachment dropdown */}
               <FileAttachmentDropdown
                 onFileSelect={handleFileSelect}

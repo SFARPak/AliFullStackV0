@@ -25,7 +25,7 @@ export function BackendChatPanel({
   const [error, setError] = useState<string | null>(null);
   const streamCount = useAtomValue(chatStreamCountAtom);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Scroll-related properties
