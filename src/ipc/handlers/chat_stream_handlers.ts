@@ -495,8 +495,18 @@ ${componentSnippet}
         }
 
         const finalChatMode = req.chatMode || settings.selectedChatMode;
+
+        // For backend mode, read AI_RULES.md from backend folder if it exists
+        let aiRulesPath = getDyadAppPath(updatedChat.app.path);
+        if (finalChatMode === "backend") {
+          const backendRulesPath = path.join(aiRulesPath, "backend", "AI_RULES.md");
+          if (fs.existsSync(backendRulesPath)) {
+            aiRulesPath = path.join(aiRulesPath, "backend");
+          }
+        }
+
         let systemPrompt = constructSystemPrompt({
-          aiRules: await readAiRules(getDyadAppPath(updatedChat.app.path)),
+          aiRules: await readAiRules(aiRulesPath),
           chatMode: finalChatMode,
         });
 

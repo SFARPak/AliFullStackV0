@@ -180,6 +180,86 @@ export const customDark: editor.IStandaloneThemeData = {
 
 editor.defineTheme("dyad-dark", customDark);
 
+// Function to dispose of Monaco models for a specific file path
+export function disposeMonacoModel(filePath: string) {
+  try {
+    const uri = monaco.Uri.file(filePath);
+    const model = monaco.editor.getModel(uri);
+    if (model) {
+      model.dispose();
+      console.log(`Disposed Monaco model for ${filePath}`);
+    }
+  } catch (error) {
+    console.warn(`Failed to dispose Monaco model for ${filePath}:`, error);
+  }
+}
+
+// Function to invalidate Monaco models for a directory (useful when many files change)
+export function invalidateMonacoModelsForDirectory(directoryPath: string) {
+  try {
+    const models = monaco.editor.getModels();
+    models.forEach(model => {
+      const modelPath = model.uri.path;
+      if (modelPath.startsWith(directoryPath)) {
+        model.dispose();
+        console.log(`Disposed Monaco model for ${modelPath}`);
+      }
+    });
+  } catch (error) {
+    console.warn(`Failed to invalidate Monaco models for directory ${directoryPath}:`, error);
+  }
+}
+
+// Function to create or update a Monaco model for a file
+export function ensureMonacoModel(filePath: string, content: string, language?: string) {
+  try {
+    const uri = monaco.Uri.file(filePath);
+    let model = monaco.editor.getModel(uri);
+
+    if (model) {
+      // Update existing model
+      model.setValue(content);
+    } else {
+      // Create new model
+      const detectedLanguage = language || getLanguageFromPath(filePath);
+      model = monaco.editor.createModel(content, detectedLanguage, uri);
+    }
+
+    return model;
+  } catch (error) {
+    console.warn(`Failed to ensure Monaco model for ${filePath}:`, error);
+    return null;
+  }
+}
+
+// Helper function to detect language from file path
+function getLanguageFromPath(filePath: string): string {
+  const extension = filePath.split('.').pop()?.toLowerCase();
+  const languageMap: Record<string, string> = {
+    js: 'javascript',
+    jsx: 'javascript',
+    ts: 'typescript',
+    tsx: 'typescript',
+    html: 'html',
+    css: 'css',
+    json: 'json',
+    md: 'markdown',
+    py: 'python',
+    java: 'java',
+    c: 'c',
+    cpp: 'cpp',
+    cs: 'csharp',
+    go: 'go',
+    rs: 'rust',
+    rb: 'ruby',
+    php: 'php',
+    swift: 'swift',
+    kt: 'kotlin',
+  };
+
+  return languageMap[extension || ''] || 'plaintext';
+}
+
 monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
   jsx: monaco.languages.typescript.JsxEmit.React, // Enable JSX
 });

@@ -168,7 +168,7 @@ export async function processFullResponseActions(
       logger.log(`Executed ${dyadExecuteSqlQueries.length} SQL queries`);
     }
 
-    // TODO: Handle add dependency tags
+    // Handle add dependency tags
     if (dyadAddDependencyPackages.length > 0) {
       try {
         await executeAddDependency({
@@ -176,6 +176,16 @@ export async function processFullResponseActions(
           message: message,
           appPath,
         });
+        // Only mark files as written if installation succeeded
+        writtenFiles.push("package.json");
+        const pnpmFilename = "pnpm-lock.yaml";
+        if (fs.existsSync(safeJoin(appPath, pnpmFilename))) {
+          writtenFiles.push(pnpmFilename);
+        }
+        const packageLockFilename = "package-lock.json";
+        if (fs.existsSync(safeJoin(appPath, packageLockFilename))) {
+          writtenFiles.push(packageLockFilename);
+        }
       } catch (error) {
         errors.push({
           message: `Failed to add dependencies: ${dyadAddDependencyPackages.join(
@@ -183,15 +193,11 @@ export async function processFullResponseActions(
           )}`,
           error: error,
         });
-      }
-      writtenFiles.push("package.json");
-      const pnpmFilename = "pnpm-lock.yaml";
-      if (fs.existsSync(safeJoin(appPath, pnpmFilename))) {
-        writtenFiles.push(pnpmFilename);
-      }
-      const packageLockFilename = "package-lock.json";
-      if (fs.existsSync(safeJoin(appPath, packageLockFilename))) {
-        writtenFiles.push(packageLockFilename);
+        // Don't mark package files as written if installation failed
+        warnings.push({
+          message: "Package installation failed - package.json and lock files not committed",
+          error: null,
+        });
       }
     }
 
@@ -414,7 +420,7 @@ export async function processFullResponseActions(
 
       // Check for any uncommitted changes after the commit
       const statusMatrix = await git.statusMatrix({ fs, dir: appPath });
-      uncommittedFiles = statusMatrix
+      uncommittedFiles = (statusMatrix || [])
         .filter((row) => row[1] !== 1 || row[2] !== 1 || row[3] !== 1)
         .map((row) => row[0]); // Get just the file paths
 
@@ -478,32 +484,37 @@ export async function processFullResponseActions(
 
     return {
       updatedFiles: hasChanges,
-      extraFiles: uncommittedFiles.length > 0 ? uncommittedFiles : undefined,
+      extraFiles: (uncommittedFiles && uncommittedFiles.length > 0) ? uncommittedFiles : undefined,
       extraFilesError,
     };
   } catch (error: unknown) {
     logger.error("Error processing files:", error);
     return { error: (error as any).toString() };
   } finally {
+    // Safely handle warnings and errors arrays (they might not be initialized if exception occurred early)
+    const safeWarnings = warnings || [];
+    const safeErrors = errors || [];
+
     const appendedContent = `
-    ${warnings
+    ${safeWarnings
       .map(
         (warning) =>
           `<dyad-output type="warning" message="${warning.message}">${warning.error}</dyad-output>`,
       )
       .join("\n")}
-    ${errors
+    ${safeErrors
       .map(
         (error) =>
           `<dyad-output type="error" message="${error.message}">${error.error}</dyad-output>`,
       )
       .join("\n")}
     `;
-    if (appendedContent.length > 0) {
+    if (appendedContent && appendedContent.trim().length > 0) {
+      const safeFullResponse = fullResponse || "";
       await db
         .update(messages)
         .set({
-          content: fullResponse + "\n\n" + appendedContent,
+          content: safeFullResponse + "\n\n" + appendedContent,
         })
         .where(eq(messages.id, messageId));
     }

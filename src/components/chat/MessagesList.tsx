@@ -26,6 +26,8 @@ interface MessagesListProps {
 
 export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
   function MessagesList({ messages, messagesEndRef }, ref) {
+    // Ensure messages is always an array to prevent null reference errors
+    const safeMessages = messages || [];
     const appId = useAtomValue(selectedAppIdAtom);
     const { versions, revertVersion } = useVersions(appId);
     const { streamMessage, isStreaming } = useStreamChat();
@@ -58,12 +60,12 @@ export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
         ref={ref}
         data-testid="messages-list"
       >
-        {messages.length > 0
-          ? messages.map((message, index) => (
+        {safeMessages.length > 0
+          ? safeMessages.map((message, index) => (
               <ChatMessage
                 key={index}
                 message={message}
-                isLastMessage={index === messages.length - 1}
+                isLastMessage={index === safeMessages.length - 1}
               />
             ))
           : !renderSetupBanner() && (
@@ -75,9 +77,9 @@ export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
             )}
         {!isStreaming && (
           <div className="flex max-w-3xl mx-auto gap-2">
-            {!!messages.length &&
-              messages[messages.length - 1].role === "assistant" &&
-              messages[messages.length - 1].commitHash && (
+            {!!safeMessages.length &&
+              safeMessages[safeMessages.length - 1].role === "assistant" &&
+              safeMessages[safeMessages.length - 1].commitHash && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -90,9 +92,9 @@ export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
 
                     setIsUndoLoading(true);
                     try {
-                      if (messages.length >= 3) {
+                      if (safeMessages.length >= 3) {
                         const previousAssistantMessage =
-                          messages[messages.length - 3];
+                          safeMessages[safeMessages.length - 3];
                         if (
                           previousAssistantMessage?.role === "assistant" &&
                           previousAssistantMessage?.commitHash
@@ -108,8 +110,8 @@ export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
                               selectedChatId,
                             );
                           setMessages(chat.messages);
-                        }
-                      } else {
+                       }
+                     } else {
                         const chat =
                           await IpcClient.getInstance().getChat(selectedChatId);
                         if (chat.initialCommitHash) {
@@ -146,7 +148,7 @@ export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
                   Undo
                 </Button>
               )}
-            {!!messages.length && (
+            {!!safeMessages.length && (
               <Button
                 variant="outline"
                 size="sm"
@@ -161,14 +163,14 @@ export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
                   try {
                     // The last message is usually an assistant, but it might not be.
                     const lastVersion = versions[0];
-                    const lastMessage = messages[messages.length - 1];
+                    const lastMessage = safeMessages[safeMessages.length - 1];
                     let shouldRedo = true;
                     if (
                       lastVersion.oid === lastMessage.commitHash &&
                       lastMessage.role === "assistant"
                     ) {
                       const previousAssistantMessage =
-                        messages[messages.length - 3];
+                        safeMessages[safeMessages.length - 3];
                       if (
                         previousAssistantMessage?.role === "assistant" &&
                         previousAssistantMessage?.commitHash
@@ -200,7 +202,7 @@ export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
                     }
 
                     // Find the last user message
-                    const lastUserMessage = [...messages]
+                    const lastUserMessage = [...safeMessages]
                       .reverse()
                       .find((message) => message.role === "user");
                     if (!lastUserMessage) {
@@ -238,9 +240,9 @@ export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
         {isStreaming &&
           !settings?.enableDyadPro &&
           !userBudget &&
-          messages.length > 0 && (
+          safeMessages.length > 0 && (
             <PromoMessage
-              seed={messages.length * (appId ?? 1) * (selectedChatId ?? 1)}
+              seed={safeMessages.length * (appId ?? 1) * (selectedChatId ?? 1)}
             />
           )}
         <div ref={messagesEndRef} />

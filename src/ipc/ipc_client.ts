@@ -1208,4 +1208,9 @@ export class IpcClient {
   public cancelHelpChat(sessionId: string): void {
     this.ipcRenderer.invoke("help:chat:cancel", sessionId).catch(() => {});
   }
+
+  // Start backend server
+  public async startBackendServer(appId: number): Promise<void> {
+    return this.ipcRenderer.invoke("start-backend-server", appId);
+  }
 }

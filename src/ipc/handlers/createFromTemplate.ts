@@ -271,13 +271,13 @@ Available packages and libraries:
     "@tanstack/react-query": "^5.56.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.2"
+    "react-router-dom": "^6.26.2",
+    "typescript": "^5.5.3"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
-    "typescript": "^5.5.3",
     "vite": "^6.3.4"
   },
   "scripts": {
@@ -831,7 +831,6 @@ export async function createFromTemplate({
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
-    "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
@@ -1160,11 +1159,19 @@ export async function setupBackendFramework(backendPath: string, framework: stri
       logger.warn(`Failed to install dependencies for ${framework}:`, installError);
       // Continue even if installation fails
     }
+
+    // Auto-start the backend server after dependency installation
+    try {
+      logger.info(`Auto-starting ${framework} backend server in ${backendPath}`);
+      await startBackendServer(backendPath, framework);
+    } catch (startError) {
+      logger.warn(`Failed to auto-start ${framework} backend server:`, startError);
+      // Continue even if server start fails - user can start manually
+    }
   } catch (error) {
     logger.error(`Error setting up ${framework} framework:`, error);
   }
 }
-
 async function setupDjango(backendPath: string) {
   const requirementsPath = path.join(backendPath, 'requirements.txt');
   const managePath = path.join(backendPath, 'manage.py');
@@ -1192,6 +1199,7 @@ if __name__ == "__main__":
         ) from exc
     execute_from_command_line(sys.argv)
 `;
+
   await fs.writeFile(managePath, manageContent);
 
   // Create directory structure
@@ -1296,6 +1304,42 @@ def home(request):
     return HttpResponse("Welcome to Django!")
 `;
   await fs.writeFile(viewsPath, viewsContent);
+
+  // Create AI_RULES.md for Django backend development
+  const aiRulesContent = `# Tech Stack
+- You are building a Django backend application.
+- Use Python 3.x.
+- Follow Django best practices and conventions.
+- Always put source code in the appropriate Django app folders.
+
+## Project Structure
+- \`mysite/\`: Main Django project directory
+- \`mysite/settings.py\`: Project settings (database, installed apps, middleware, etc.)
+- \`mysite/urls.py\`: Main URL configuration
+- \`mysite/views.py\`: Basic views (consider moving to separate apps for larger projects)
+- \`manage.py\`: Django management commands
+
+## Development Guidelines
+- Create Django apps for different features using \`python manage.py startapp <app_name>\`
+- Use Django's ORM for database operations
+- Implement proper URL routing in urls.py files
+- Use Django's built-in authentication system when needed
+- Follow REST API conventions for API endpoints
+- Use Django REST Framework for complex APIs (add to requirements.txt if needed)
+
+## Database
+- Default database is SQLite (db.sqlite3)
+- Use migrations for database schema changes: \`python manage.py makemigrations\` and \`python manage.py migrate\`
+- Define models in models.py files within each app
+
+## Best Practices
+- Use class-based views for complex logic
+- Implement proper error handling and logging
+- Use Django's forms for data validation
+- Implement proper security measures (CSRF protection, authentication, authorization)
+- Write comprehensive tests in tests.py files
+- Use Django's caching framework for performance optimization`;
+  await fs.writeFile(path.join(backendPath, 'AI_RULES.md'), aiRulesContent);
 }
 
 async function setupFastAPI(backendPath: string) {
@@ -1319,6 +1363,50 @@ async def read_items():
     return [{"id": 1, "name": "Sample Item"}]
 `;
   await fs.writeFile(mainPath, mainContent);
+
+  // Create AI_RULES.md for FastAPI backend development
+  const aiRulesContent = `# Tech Stack
+- You are building a FastAPI backend application.
+- Use Python 3.8+.
+- Follow FastAPI best practices and async/await patterns.
+- Always put source code in appropriate modules and packages.
+
+## Project Structure
+- \`main.py\`: Main FastAPI application entry point
+- \`requirements.txt\`: Python dependencies
+- Consider creating separate modules for:
+  - \`models/\`: Pydantic models and data structures
+  - \`routers/\`: API route handlers
+  - \`services/\`: Business logic
+  - \`database/\`: Database connection and operations
+
+## Development Guidelines
+- Use Pydantic models for request/response validation
+- Implement proper async/await patterns for I/O operations
+- Use dependency injection with FastAPI's Depends()
+- Implement proper error handling with HTTPException
+- Use FastAPI's automatic API documentation (/docs)
+- Follow REST API conventions or GraphQL if specified
+- Use SQLAlchemy or similar ORM for database operations
+- Implement authentication and authorization as needed
+
+## API Design
+- Use meaningful HTTP status codes
+- Implement proper request/response models
+- Add comprehensive API documentation with docstrings
+- Use path parameters, query parameters, and request bodies appropriately
+- Implement pagination for list endpoints
+- Use consistent JSON response formats
+
+## Best Practices
+- Use type hints throughout the codebase
+- Write comprehensive tests using pytest
+- Implement proper logging
+- Use environment variables for configuration
+- Implement CORS middleware for frontend integration
+- Use background tasks for long-running operations
+- Implement rate limiting and security measures`;
+  await fs.writeFile(path.join(backendPath, 'AI_RULES.md'), aiRulesContent);
 }
 
 async function setupFlask(backendPath: string) {
@@ -1345,6 +1433,50 @@ if __name__ == '__main__':
     app.run(debug=True)
 `;
   await fs.writeFile(appPath, appContent);
+
+  // Create AI_RULES.md for Flask backend development
+  const aiRulesContent = `# Tech Stack
+- You are building a Flask backend application.
+- Use Python 3.x.
+- Follow Flask best practices and patterns.
+- Always put source code in appropriate modules and packages.
+
+## Project Structure
+- \`app.py\`: Main Flask application entry point
+- \`requirements.txt\`: Python dependencies
+- Consider creating separate modules for larger applications:
+  - \`models/\`: Data models and database operations
+  - \`routes/\`: API route handlers
+  - \`services/\`: Business logic
+  - \`templates/\`: Jinja2 HTML templates (if using server-side rendering)
+  - \`static/\`: CSS, JavaScript, and other static files
+
+## Development Guidelines
+- Use Flask blueprints for larger applications to organize routes
+- Implement proper error handling with Flask's error handlers
+- Use Flask-WTF for form handling and validation
+- Implement proper JSON responses for API endpoints
+- Use Flask-SQLAlchemy or similar ORM for database operations
+- Configure Flask properly for different environments (development, production)
+- Use Flask's application factory pattern for larger apps
+
+## API Design
+- Use meaningful HTTP status codes
+- Implement proper request/response handling
+- Add comprehensive API documentation
+- Use Flask-RESTful or similar extensions for complex APIs
+- Implement authentication and authorization as needed
+- Use consistent JSON response formats
+
+## Best Practices
+- Use environment variables for configuration (consider python-dotenv)
+- Implement proper logging with Flask's logger
+- Write comprehensive tests using pytest or Flask's testing client
+- Use Flask's before_request and after_request decorators for middleware-like functionality
+- Implement CORS handling for frontend integration
+- Use Flask's session management for user sessions
+- Implement security measures (input validation, XSS protection, CSRF protection)`;
+  await fs.writeFile(path.join(backendPath, 'AI_RULES.md'), aiRulesContent);
 }
 
 async function setupNodeJS(backendPath: string) {
@@ -1389,6 +1521,61 @@ app.listen(port, () => {
   console.log(\`Server running on http://localhost:\${port}\`);
 });`;
   await fs.writeFile(serverPath, serverContent);
+
+  // Create AI_RULES.md for Node.js backend development
+  const aiRulesContent = `# Tech Stack
+- You are building a Node.js backend application.
+- Use modern JavaScript (ES6+) or TypeScript.
+- Follow Node.js best practices and Express.js patterns.
+- Always put source code in appropriate modules and directories.
+
+## Project Structure
+- \`server.js\`: Main Express application entry point
+- \`package.json\`: Node.js dependencies and scripts
+- Consider creating separate directories for larger applications:
+  - \`routes/\`: Express route handlers
+  - \`controllers/\`: Business logic controllers
+  - \`models/\`: Data models and database operations
+  - \`middleware/\`: Custom Express middleware
+  - \`utils/\`: Utility functions and helpers
+  - \`config/\`: Configuration files
+  - \`tests/\`: Test files
+
+## Development Guidelines
+- Use Express.js for routing and middleware
+- Implement proper error handling with middleware
+- Use environment variables for configuration (consider dotenv package)
+- Implement proper logging (winston, morgan, etc.)
+- Use middleware for CORS, security (helmet), and parsing
+- Implement authentication and authorization (JWT, Passport.js, etc.)
+- Use proper HTTP status codes and JSON responses
+- Implement input validation and sanitization
+
+## API Design
+- Follow REST API conventions
+- Use consistent JSON response formats
+- Implement proper error responses with appropriate status codes
+- Use Express routers for organizing routes
+- Implement pagination for list endpoints
+- Use middleware for authentication and authorization
+
+## Database Integration
+- Consider using MongoDB with Mongoose
+- Or use SQL databases with Sequelize or TypeORM
+- Implement proper database connection handling
+- Use migrations for database schema changes
+- Implement data validation at the model level
+
+## Best Practices
+- Use async/await or Promises for asynchronous operations
+- Implement proper error handling and logging
+- Write comprehensive tests using Jest or Mocha
+- Use ESLint for code linting
+- Implement security best practices (input validation, XSS protection, etc.)
+- Use environment-specific configurations
+- Implement rate limiting and other security measures
+- Use clustering or PM2 for production deployment`;
+  await fs.writeFile(path.join(backendPath, 'AI_RULES.md'), aiRulesContent);
 }
 
 async function copyRepoToApp(repoCachePath: string, appPath: string) {
@@ -1460,6 +1647,59 @@ async function installDependenciesForFramework(projectPath: string, framework: s
   });
 }
 
+async function startBackendServer(projectPath: string, framework: string) {
+  const startCommand = getStartCommandForFramework(framework);
+
+  return new Promise<void>((resolve, reject) => {
+    const { spawn } = require('child_process');
+    const serverProcess = spawn(startCommand, [], {
+      cwd: projectPath,
+      shell: true,
+      stdio: "pipe",
+      detached: true, // Allow the process to run independently
+    });
+
+    logger.info(`Starting ${framework} server with command: ${startCommand} in ${projectPath}`);
+
+    let serverOutput = "";
+    let serverError = "";
+
+    serverProcess.stdout?.on("data", (data: Buffer) => {
+      serverOutput += data.toString();
+      logger.info(`[${framework} server] ${data.toString().trim()}`);
+    });
+
+    serverProcess.stderr?.on("data", (data: Buffer) => {
+      serverError += data.toString();
+      logger.info(`[${framework} server] ${data.toString().trim()}`);
+    });
+
+    serverProcess.on("close", (code: number | null) => {
+      if (code === 0) {
+        logger.info(`Successfully started ${framework} server`);
+        resolve();
+      } else {
+        logger.warn(`${framework} server exited with code: ${code}. Error: ${serverError}`);
+        // Don't reject here - server might have started successfully and exited normally
+        resolve();
+      }
+    });
+
+    serverProcess.on("error", (err: Error) => {
+      logger.error(`Failed to start ${framework} server:`, err);
+      // Don't reject here - user can start server manually
+      resolve();
+    });
+
+    // Give the server a moment to start up, then unref to let it run in background
+    setTimeout(() => {
+      serverProcess.unref();
+      logger.info(`${framework} server started in background`);
+      resolve();
+    }, 2000);
+  });
+}
+
 function getInstallCommandForFramework(framework: string): string {
   switch (framework) {
     case "nodejs":
@@ -1471,6 +1711,22 @@ function getInstallCommandForFramework(framework: string): string {
       return "pip install -r requirements.txt";
     default:
       logger.warn(`Unknown framework for dependency installation: ${framework}`);
+      return "";
+  }
+}
+
+function getStartCommandForFramework(framework: string): string {
+  switch (framework) {
+    case "nodejs":
+      return "npm start";
+    case "django":
+      return "python manage.py runserver";
+    case "fastapi":
+      return "uvicorn main:app --reload --host 0.0.0.0 --port 8000";
+    case "flask":
+      return "python -c 'import os; os.environ.setdefault(\"FLASK_APP\", \"app.py\"); os.system(\"flask run --host=0.0.0.0 --port=5000\")'";
+    default:
+      logger.warn(`Unknown framework for server start: ${framework}`);
       return "";
   }
 }

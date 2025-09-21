@@ -3,7 +3,6 @@ import Editor, { OnMount } from "@monaco-editor/react";
 import { useLoadAppFile } from "@/hooks/useLoadAppFile";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ChevronRight, Circle, Save } from "lucide-react";
-import "@/components/chat/monaco";
 import { IpcClient } from "@/ipc/ipc_client";
 import { showError, showSuccess, showWarning } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
@@ -102,9 +101,16 @@ export const FileEditor = ({ appId, filePath }: FileEditorProps) => {
   const queryClient = useQueryClient();
   const { checkProblems } = useCheckProblems(appId);
 
-  // Update state when content loads
+  // Update state when content loads or file path changes
   useEffect(() => {
     if (content !== null) {
+      // Dispose of old model if file path changed
+      if (originalValueRef.current !== undefined && typeof window !== "undefined") {
+        import("@/components/chat/monaco").then(({ disposeMonacoModel }) => {
+          disposeMonacoModel(filePath);
+        }).catch(err => console.warn("Failed to dispose Monaco model:", err));
+      }
+
       setValue(content);
       originalValueRef.current = content;
       currentValueRef.current = content;
@@ -123,12 +129,20 @@ export const FileEditor = ({ appId, filePath }: FileEditorProps) => {
   const isDarkMode =
     theme === "dark" ||
     (theme === "system" &&
+      typeof window !== "undefined" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
   const editorTheme = isDarkMode ? "dyad-dark" : "dyad-light";
 
   // Handle editor mount
   const handleEditorDidMount: OnMount = (editor) => {
     editorRef.current = editor;
+
+    // Ensure Monaco model exists for this file
+    if (currentValueRef.current !== undefined && typeof window !== "undefined") {
+      import("@/components/chat/monaco").then(({ ensureMonacoModel }) => {
+        ensureMonacoModel(filePath, currentValueRef.current!);
+      }).catch(err => console.warn("Failed to ensure Monaco model:", err));
+    }
 
     // Listen for model content change events
     editor.onDidBlurEditorText(() => {
@@ -169,6 +183,14 @@ export const FileEditor = ({ appId, filePath }: FileEditorProps) => {
         filePath,
         currentValueRef.current,
       );
+
+      // Update Monaco model to ensure it's in sync
+      if (typeof window !== "undefined") {
+        import("@/components/chat/monaco").then(({ ensureMonacoModel }) => {
+          ensureMonacoModel(filePath, currentValueRef.current!);
+        }).catch(err => console.warn("Failed to update Monaco model:", err));
+      }
+
       await queryClient.invalidateQueries({ queryKey: ["versions", appId] });
       if (settings?.enableAutoFixProblems) {
         checkProblems();
