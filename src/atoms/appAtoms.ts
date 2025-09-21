@@ -12,6 +12,9 @@ export const previewModeAtom = atom<
 >("preview");
 export const selectedVersionIdAtom = atom<string | null>(null);
 export const appOutputAtom = atom<AppOutput[]>([]);
+export const frontendTerminalOutputAtom = atom<AppOutput[]>([]);
+export const backendTerminalOutputAtom = atom<AppOutput[]>([]);
+export const activeTerminalAtom = atom<"main" | "frontend" | "backend">("main");
 export const appUrlAtom = atom<
   | { appUrl: string; appId: number; originalUrl: string }
   | { appUrl: null; appId: null; originalUrl: null }

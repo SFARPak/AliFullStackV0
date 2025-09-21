@@ -27,11 +27,13 @@ import {
   getDyadAddDependencyTags,
   getDyadExecuteSqlTags,
   getDyadRunBackendTerminalCmdTags,
+  getDyadRunFrontendTerminalCmdTags,
 } from "../utils/dyad_tag_parser";
 import { runShellCommand } from "../utils/runShellCommand";
 import { storeDbTimestampAtCurrentVersion } from "../utils/neon_timestamp_utils";
 
 import { FileUploadsState } from "../utils/file_uploads_state";
+import { addTerminalOutput } from "../handlers/terminal_handlers";
 
 const readFile = fs.promises.readFile;
 const logger = log.scope("response_processor");
@@ -122,6 +124,7 @@ export async function processFullResponseActions(
       ? getDyadExecuteSqlTags(fullResponse)
       : [];
     const dyadRunBackendTerminalCmdTags = getDyadRunBackendTerminalCmdTags(fullResponse);
+    const dyadRunFrontendTerminalCmdTags = getDyadRunFrontendTerminalCmdTags(fullResponse);
 
     const message = await db.query.messages.findFirst({
       where: and(
@@ -180,6 +183,10 @@ export async function processFullResponseActions(
 
           logger.log(`Executing backend terminal command: ${cmdTag.command} in ${cwd}`);
 
+          // Add command to backend terminal output
+          // We need to import and use the backendTerminalOutputAtom
+          // For now, we'll use a more direct approach by sending IPC messages to update the UI
+
           const result = await runShellCommand(`cd "${cwd}" && ${cmdTag.command}`);
 
           if (result === null) {
@@ -187,19 +194,72 @@ export async function processFullResponseActions(
               message: `Backend terminal command failed: ${cmdTag.description || cmdTag.command}`,
               error: `Command execution failed in ${cwd}`,
             });
+            // Add error to backend terminal
+            addTerminalOutput(chatWithApp.app.id, "backend", `❌ Error: ${cmdTag.description || cmdTag.command}`, "error");
           } else {
             logger.log(`Backend terminal command succeeded: ${cmdTag.description || cmdTag.command}`);
-            // Add success message to app output
-            // Note: We don't add to writtenFiles since these are not file changes
+
+            // Add command and result to backend terminal
+            addTerminalOutput(chatWithApp.app.id, "backend", `$ ${cmdTag.command}`, "command");
+
+            if (result.trim()) {
+              addTerminalOutput(chatWithApp.app.id, "backend", result, "output");
+            }
+
+            addTerminalOutput(chatWithApp.app.id, "backend", `✅ ${cmdTag.description || cmdTag.command} completed successfully`, "success");
           }
         } catch (error) {
           errors.push({
             message: `Backend terminal command failed: ${cmdTag.description || cmdTag.command}`,
             error: error,
           });
+          // Add error to backend terminal
+          addTerminalOutput(chatWithApp.app.id, "backend", `❌ Error: ${error}`, "error");
         }
       }
       logger.log(`Executed ${dyadRunBackendTerminalCmdTags.length} backend terminal commands`);
+     }
+
+    // Handle frontend terminal command tags
+    if (dyadRunFrontendTerminalCmdTags.length > 0) {
+      for (const cmdTag of dyadRunFrontendTerminalCmdTags) {
+        try {
+          const frontendPath = path.join(appPath, "frontend");
+          const cwd = cmdTag.cwd ? path.join(frontendPath, cmdTag.cwd) : frontendPath;
+
+          logger.log(`Executing frontend terminal command: ${cmdTag.command} in ${cwd}`);
+
+          const result = await runShellCommand(`cd "${cwd}" && ${cmdTag.command}`);
+
+          if (result === null) {
+            errors.push({
+              message: `Frontend terminal command failed: ${cmdTag.description || cmdTag.command}`,
+              error: `Command execution failed in ${cwd}`,
+            });
+            // Add error to frontend terminal
+            addTerminalOutput(chatWithApp.app.id, "frontend", `❌ Error: ${cmdTag.description || cmdTag.command}`, "error");
+          } else {
+            logger.log(`Frontend terminal command succeeded: ${cmdTag.description || cmdTag.command}`);
+
+            // Add command and result to frontend terminal
+            addTerminalOutput(chatWithApp.app.id, "frontend", `$ ${cmdTag.command}`, "command");
+
+            if (result.trim()) {
+              addTerminalOutput(chatWithApp.app.id, "frontend", result, "output");
+            }
+
+            addTerminalOutput(chatWithApp.app.id, "frontend", `✅ ${cmdTag.description || cmdTag.command} completed successfully`, "success");
+          }
+        } catch (error) {
+          errors.push({
+            message: `Frontend terminal command failed: ${cmdTag.description || cmdTag.command}`,
+            error: error,
+          });
+          // Add error to frontend terminal
+          addTerminalOutput(chatWithApp.app.id, "frontend", `❌ Error: ${error}`, "error");
+        }
+      }
+      logger.log(`Executed ${dyadRunFrontendTerminalCmdTags.length} frontend terminal commands`);
      }
 
     // Handle add dependency tags

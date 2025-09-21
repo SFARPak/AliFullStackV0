@@ -468,37 +468,37 @@ const FULLSTACK_AI_RULES = `# Full Stack Development
 ## Framework-Specific Terminal Commands
 
 ### Django Commands (Backend Terminal)
-- Install dependencies: \`pip install -r requirements.txt\`
-- Run migrations: \`python manage.py migrate\`
-- Create migrations: \`python manage.py makemigrations\`
-- Start server: \`python manage.py runserver 8000\`
-- Create superuser: \`python manage.py createsuperuser\`
-- Collect static files: \`python manage.py collectstatic\`
+- Install dependencies: <dyad-run-backend-terminal-cmd description="Install Python dependencies">pip install -r requirements.txt</dyad-run-backend-terminal-cmd>
+- Run migrations: <dyad-run-backend-terminal-cmd description="Apply database migrations">python manage.py migrate</dyad-run-backend-terminal-cmd>
+- Create migrations: <dyad-run-backend-terminal-cmd description="Create database migrations">python manage.py makemigrations</dyad-run-backend-terminal-cmd>
+- Start server: <dyad-run-backend-terminal-cmd description="Start Django development server">python manage.py runserver 8000</dyad-run-backend-terminal-cmd>
+- Create superuser: <dyad-run-backend-terminal-cmd description="Create Django superuser">python manage.py createsuperuser</dyad-run-backend-terminal-cmd>
+- Collect static files: <dyad-run-backend-terminal-cmd description="Collect static files">python manage.py collectstatic</dyad-run-backend-terminal-cmd>
 
 ### FastAPI Commands (Backend Terminal)
-- Install dependencies: \`pip install -r requirements.txt\`
-- Start server: \`uvicorn main:app --reload --host 0.0.0.0 --port 8000\`
-- Run with hot reload: \`uvicorn main:app --reload\`
-- Generate client: \`python -c "from main import app; print(app.openapi())"\`
+- Install dependencies: <dyad-run-backend-terminal-cmd description="Install Python dependencies">pip install -r requirements.txt</dyad-run-backend-terminal-cmd>
+- Start server: <dyad-run-backend-terminal-cmd description="Start FastAPI server">uvicorn main:app --reload --host 0.0.0.0 --port 8000</dyad-run-backend-terminal-cmd>
+- Run with hot reload: <dyad-run-backend-terminal-cmd description="Run FastAPI with hot reload">uvicorn main:app --reload</dyad-run-backend-terminal-cmd>
+- Generate client: <dyad-run-backend-terminal-cmd description="Generate OpenAPI client">python -c "from main import app; print(app.openapi())"</dyad-run-backend-terminal-cmd>
 
 ### Flask Commands (Backend Terminal)
-- Install dependencies: \`pip install -r requirements.txt\`
-- Start server: \`python app.py\`
-- Start with Flask CLI: \`flask run --host=0.0.0.0 --port=5000\`
-- Initialize database: \`flask db init\` (if using Flask-Migrate)
+- Install dependencies: <dyad-run-backend-terminal-cmd description="Install Python dependencies">pip install -r requirements.txt</dyad-run-backend-terminal-cmd>
+- Start server: <dyad-run-backend-terminal-cmd description="Start Flask development server">python app.py</dyad-run-backend-terminal-cmd>
+- Start with Flask CLI: <dyad-run-backend-terminal-cmd description="Start Flask with CLI">flask run --host=0.0.0.0 --port=5000</dyad-run-backend-terminal-cmd>
+- Initialize database: <dyad-run-backend-terminal-cmd description="Initialize Flask-Migrate">flask db init</dyad-run-backend-terminal-cmd>
 
 ### Node.js Commands (Backend Terminal)
-- Install dependencies: \`npm install\`
-- Start server: \`npm start\` or \`node server.js\`
-- Development mode: \`npm run dev\` or \`nodemon server.js\`
-- Build for production: \`npm run build\`
+- Install dependencies: <dyad-run-backend-terminal-cmd description="Install Node.js dependencies">npm install</dyad-run-backend-terminal-cmd>
+- Start server: <dyad-run-backend-terminal-cmd description="Start production server">npm start</dyad-run-backend-terminal-cmd>
+- Development mode: <dyad-run-backend-terminal-cmd description="Start development server">npm run dev</dyad-run-backend-terminal-cmd>
+- Build for production: <dyad-run-backend-terminal-cmd description="Build for production">npm run build</dyad-run-backend-terminal-cmd>
 
 ### Frontend Commands (Frontend Terminal)
-- Install dependencies: \`npm install\`
-- Start development server: \`npm run dev\`
-- Build for production: \`npm run build\`
-- Run tests: \`npm test\`
-- Lint code: \`npm run lint\`
+- Install dependencies: <dyad-run-frontend-terminal-cmd description="Install frontend dependencies">npm install</dyad-run-frontend-terminal-cmd>
+- Start development server: <dyad-run-frontend-terminal-cmd description="Start frontend development server">npm run dev</dyad-run-frontend-terminal-cmd>
+- Build for production: <dyad-run-frontend-terminal-cmd description="Build frontend for production">npm run build</dyad-run-frontend-terminal-cmd>
+- Run tests: <dyad-run-frontend-terminal-cmd description="Run frontend tests">npm test</dyad-run-frontend-terminal-cmd>
+- Lint code: <dyad-run-frontend-terminal-cmd description="Lint frontend code">npm run lint</dyad-run-frontend-terminal-cmd>
 
 ## Integration Best Practices
 - Design clean API contracts between frontend and backend
