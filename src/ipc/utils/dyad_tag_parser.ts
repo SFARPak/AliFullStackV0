@@ -137,3 +137,32 @@ export function getDyadCommandTags(fullResponse: string): string[] {
 
   return commands;
 }
+
+export function getDyadRunBackendTerminalCmdTags(fullResponse: string): {
+  command: string;
+  cwd?: string;
+  description?: string;
+}[] {
+  const dyadRunBackendTerminalCmdRegex =
+    /<dyad-run-backend-terminal-cmd([^>]*)>([\s\S]*?)<\/dyad-run-backend-terminal-cmd>/g;
+  const cwdRegex = /cwd="([^"]+)"/;
+  const descriptionRegex = /description="([^"]+)"/;
+
+  let match;
+  const commands: { command: string; cwd?: string; description?: string }[] = [];
+
+  while ((match = dyadRunBackendTerminalCmdRegex.exec(fullResponse)) !== null) {
+    const attributesString = match[1];
+    const command = match[2].trim();
+
+    const cwdMatch = cwdRegex.exec(attributesString);
+    const descriptionMatch = descriptionRegex.exec(attributesString);
+
+    const cwd = cwdMatch?.[1];
+    const description = descriptionMatch?.[1];
+
+    commands.push({ command, cwd, description });
+  }
+
+  return commands;
+}

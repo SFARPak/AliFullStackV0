@@ -26,7 +26,9 @@ import {
   getDyadDeleteTags,
   getDyadAddDependencyTags,
   getDyadExecuteSqlTags,
+  getDyadRunBackendTerminalCmdTags,
 } from "../utils/dyad_tag_parser";
+import { runShellCommand } from "../utils/runShellCommand";
 import { storeDbTimestampAtCurrentVersion } from "../utils/neon_timestamp_utils";
 
 import { FileUploadsState } from "../utils/file_uploads_state";
@@ -119,6 +121,7 @@ export async function processFullResponseActions(
     const dyadExecuteSqlQueries = chatWithApp.app.supabaseProjectId
       ? getDyadExecuteSqlTags(fullResponse)
       : [];
+    const dyadRunBackendTerminalCmdTags = getDyadRunBackendTerminalCmdTags(fullResponse);
 
     const message = await db.query.messages.findFirst({
       where: and(
@@ -166,7 +169,38 @@ export async function processFullResponseActions(
         }
       }
       logger.log(`Executed ${dyadExecuteSqlQueries.length} SQL queries`);
-    }
+     }
+
+    // Handle backend terminal command tags
+    if (dyadRunBackendTerminalCmdTags.length > 0) {
+      for (const cmdTag of dyadRunBackendTerminalCmdTags) {
+        try {
+          const backendPath = path.join(appPath, "backend");
+          const cwd = cmdTag.cwd ? path.join(backendPath, cmdTag.cwd) : backendPath;
+
+          logger.log(`Executing backend terminal command: ${cmdTag.command} in ${cwd}`);
+
+          const result = await runShellCommand(`cd "${cwd}" && ${cmdTag.command}`);
+
+          if (result === null) {
+            errors.push({
+              message: `Backend terminal command failed: ${cmdTag.description || cmdTag.command}`,
+              error: `Command execution failed in ${cwd}`,
+            });
+          } else {
+            logger.log(`Backend terminal command succeeded: ${cmdTag.description || cmdTag.command}`);
+            // Add success message to app output
+            // Note: We don't add to writtenFiles since these are not file changes
+          }
+        } catch (error) {
+          errors.push({
+            message: `Backend terminal command failed: ${cmdTag.description || cmdTag.command}`,
+            error: error,
+          });
+        }
+      }
+      logger.log(`Executed ${dyadRunBackendTerminalCmdTags.length} backend terminal commands`);
+     }
 
     // Handle add dependency tags
     if (dyadAddDependencyPackages.length > 0) {
