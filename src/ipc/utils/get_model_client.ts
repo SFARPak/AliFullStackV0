@@ -25,35 +25,6 @@ import { createOllamaProvider } from "./ollama_provider";
 import { getOllamaApiUrl } from "../handlers/local_model_ollama_handler";
 import { createFallback } from "./fallback_ai_model";
 
-// Roo Code authentication helpers
-interface RooCodeCredentials {
-  clientToken: string;
-  sessionId: string;
-  organizationId?: string | null;
-}
-
-async function getRooCodeCredentials(): Promise<RooCodeCredentials | null> {
-  try {
-    const storedData = await import("../handlers/roocode_auth_handlers").then(
-      (module) => module.getStoredCredentials(),
-    );
-    return storedData || null;
-  } catch (error) {
-    logger.error("Failed to get Roo Code credentials:", error);
-    return null;
-  }
-}
-
-async function getRooCodeSessionToken(credentials: RooCodeCredentials): Promise<string> {
-  try {
-    const { clerkCreateSessionToken } = await import("../handlers/roocode_auth_handlers");
-    return await clerkCreateSessionToken(credentials);
-  } catch (error) {
-    logger.error("Failed to create Roo Code session token:", error);
-    throw new Error("Failed to authenticate with Roo Code Cloud");
-  }
-}
-
 const dyadEngineUrl = process.env.DYAD_ENGINE_URL;
 const dyadGatewayUrl = process.env.DYAD_GATEWAY_URL;
 
@@ -119,7 +90,7 @@ export async function getModelClient(
       const provider = isEngineEnabled
         ? createDyadEngine({
             apiKey: dyadApiKey,
-            baseURL: dyadEngineUrl ?? "https://engine.alifullstack.com/v1",
+            baseURL: dyadEngineUrl ?? "https://engine.dyad.sh/v1",
             originalProviderId: model.provider,
             dyadOptions: {
               enableLazyEdits:
@@ -135,7 +106,7 @@ export async function getModelClient(
         : createOpenAICompatible({
             name: "dyad-gateway",
             apiKey: dyadApiKey,
-            baseURL: dyadGatewayUrl ?? "https://llm-gateway.alifullstack.com/v1",
+            baseURL: dyadGatewayUrl ?? "https://llm-gateway.dyad.sh/v1",
           });
 
       logger.info(
@@ -187,16 +158,14 @@ export async function getModelClient(
       return {
         modelClient: {
           model: createFallback({
-            models: (await Promise.all(
-              FREE_OPENROUTER_MODEL_NAMES.map(
-                async (name: string) =>
-                  (await getRegularModelClient(
-                    { provider: "openrouter", name },
-                    settings,
-                    openRouterProvider,
-                  )).modelClient.model,
-              ),
-            )),
+            models: FREE_OPENROUTER_MODEL_NAMES.map(
+              (name: string) =>
+                getRegularModelClient(
+                  { provider: "openrouter", name },
+                  settings,
+                  openRouterProvider,
+                ).modelClient.model,
+            ),
           }),
           builtinProviderId: "openrouter",
         },
@@ -233,17 +202,17 @@ export async function getModelClient(
       "No API keys available for any model supported by the 'auto' provider.",
     );
   }
-  return await getRegularModelClient(model, settings, providerConfig);
+  return getRegularModelClient(model, settings, providerConfig);
 }
 
-async function getRegularModelClient(
+function getRegularModelClient(
   model: LargeLanguageModel,
   settings: UserSettings,
   providerConfig: LanguageModelProvider,
-): Promise<{
+): {
   modelClient: ModelClient;
   backupModelClients: ModelClient[];
-}> {
+} {
   // Get API key for the specific provider
   const apiKey =
     settings.providerSettings?.[model.provider]?.apiKey?.value ||
@@ -422,32 +391,6 @@ async function getRegularModelClient(
         apiKey: apiKey,
         region: getEnvVar("AWS_REGION") || "us-east-1",
       });
-      return {
-        modelClient: {
-          model: provider(model.name),
-          builtinProviderId: providerId,
-        },
-        backupModelClients: [],
-      };
-    }
-    case "roocode": {
-      // Roo Code provider - requires authentication
-      const credentials = await getRooCodeCredentials();
-      if (!credentials) {
-        throw new Error(
-          `Roo Code authentication required. Please authenticate with Roo Code Cloud first.`,
-        );
-      }
-
-      // Create session token for API calls
-      const sessionToken = await getRooCodeSessionToken(credentials);
-
-      const provider = createOpenAICompatible({
-        name: "roocode",
-        baseURL: "https://api.roocode.com/proxy/v1",
-        apiKey: sessionToken,
-      });
-
       return {
         modelClient: {
           model: provider(model.name),

@@ -44,7 +44,6 @@ import { getLanguageModelProviders } from "../shared/language_model_helpers";
 import { startProxy } from "../utils/start_proxy_server";
 import { Worker } from "worker_threads";
 import { createFromTemplate } from "./createFromTemplate";
-import { setupBackendFramework } from "./createFromTemplate";
 import { gitCommit } from "../utils/git_utils";
 import { safeSend } from "../utils/safe_sender";
 import { normalizePath } from "../../../shared/normalizePath";
@@ -52,10 +51,9 @@ import { isServerFunction } from "@/supabase_admin/supabase_utils";
 import { getVercelTeamSlug } from "../utils/vercel_utils";
 import { storeDbTimestampAtCurrentVersion } from "../utils/neon_timestamp_utils";
 import { AppSearchResult } from "@/lib/schemas";
-import { CreateMissingFolderParams } from "../ipc_types";
 
 const DEFAULT_COMMAND =
-  "(node -e \"try { const pkg = require('./package.json'); if (pkg.dependencies && pkg.dependencies['@SFARPak/react-vite-component-tagger']) { delete pkg.dependencies['@SFARPak/react-vite-component-tagger']; require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2)); } if (pkg.devDependencies && pkg.devDependencies['@SFARPak/react-vite-component-tagger']) { delete pkg.devDependencies['@SFARPak/react-vite-component-tagger']; require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2)); } } catch(e) {}; try { const fs = require('fs'); if (fs.existsSync('./vite.config.ts')) { let config = fs.readFileSync('./vite.config.ts', 'utf8'); config = config.replace(/import.*@SFARPak\\/react-vite-component-tagger.*;\\s*/g, ''); config = config.replace(/dyadComponentTagger[^}]*},?\\s*/g, ''); config = config.replace(/applyComponentTagger[^}]*},?\\s*/g, ''); fs.writeFileSync('./vite.config.ts', config); } } catch(e) {}\" && pnpm install && pnpm run dev --port 32100) || (node -e \"try { const pkg = require('./package.json'); if (pkg.dependencies && pkg.dependencies['@SFARPak/react-vite-component-tagger']) { delete pkg.dependencies['@SFARPak/react-vite-component-tagger']; require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2)); } if (pkg.devDependencies && pkg.devDependencies['@SFARPak/react-vite-component-tagger']) { delete pkg.devDependencies['@SFARPak/react-vite-component-tagger']; require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2)); } } catch(e) {}; try { const fs = require('fs'); if (fs.existsSync('./vite.config.ts')) { let config = fs.readFileSync('./vite.config.ts', 'utf8'); config = config.replace(/import.*@SFARPak\\/react-vite-component-tagger.*;\\s*/g, ''); config = config.replace(/dyadComponentTagger[^}]*},?\\s*/g, ''); config = config.replace(/applyComponentTagger[^}]*},?\\s*/g, ''); fs.writeFileSync('./vite.config.ts', config); } } catch(e) {}\" && npm install --legacy-peer-deps && npm run dev -- --port 32100)";
+  "(pnpm install && pnpm run dev --port 32100) || (npm install --legacy-peer-deps && npm run dev -- --port 32100)";
 async function copyDir(
   source: string,
   destination: string,
@@ -142,32 +140,9 @@ async function executeAppLocalNode({
   installCommand?: string | null;
   startCommand?: string | null;
 }): Promise<void> {
-  // Determine working directory based on available folders
-  const frontendPath = path.join(appPath, "frontend");
-  const backendPath = path.join(appPath, "backend");
-
-  let workingDir = appPath; // Default to root for backward compatibility
-
-  if (fs.existsSync(frontendPath) && !fs.existsSync(backendPath)) {
-    // Only frontend exists (frontend-only app)
-    workingDir = frontendPath;
-  } else if (fs.existsSync(backendPath) && !fs.existsSync(frontendPath)) {
-    // Only backend exists (backend-only app)
-    workingDir = backendPath;
-  } else if (fs.existsSync(frontendPath) && fs.existsSync(backendPath)) {
-    // Both exist - prefer frontend since it has the package.json and dev server
-    workingDir = frontendPath;
-  } else if (fs.existsSync(frontendPath)) {
-    // Only frontend exists
-    workingDir = frontendPath;
-  } else if (fs.existsSync(backendPath)) {
-    // Only backend exists
-    workingDir = backendPath;
-  }
-
   const command = getCommand({ installCommand, startCommand });
   const spawnedProcess = spawn(command, [], {
-    cwd: workingDir,
+    cwd: appPath,
     shell: true,
     stdio: "pipe", // Ensure stdio is piped so we can capture output/errors and detect close
     detached: false, // Ensure child process is attached to the main process lifecycle unless explicitly backgrounded
@@ -257,7 +232,7 @@ function listenToProcess({
           onStarted: (proxyUrl) => {
             safeSend(event.sender, "app:output", {
               type: "stdout",
-              message: `[AliFullStack-proxy-server]started=[${proxyUrl}] original=[${urlMatch[1]}]`,
+              message: `[dyad-proxy-server]started=[${proxyUrl}] original=[${urlMatch[1]}]`,
               appId,
             });
           },
@@ -401,29 +376,6 @@ RUN npm install -g pnpm
     });
   });
 
-  // Determine working directory based on available folders
-  const frontendPath = path.join(appPath, "frontend");
-  const backendPath = path.join(appPath, "backend");
-
-  let workingDir = "/app"; // Default to root for backward compatibility
-
-  if (fs.existsSync(frontendPath) && !fs.existsSync(backendPath)) {
-    // Only frontend exists (frontend-only app)
-    workingDir = "/app/frontend";
-  } else if (fs.existsSync(backendPath) && !fs.existsSync(frontendPath)) {
-    // Only backend exists (backend-only app)
-    workingDir = "/app/backend";
-  } else if (fs.existsSync(frontendPath) && fs.existsSync(backendPath)) {
-    // Both exist - prefer frontend since it has the package.json and dev server
-    workingDir = "/app/frontend";
-  } else if (fs.existsSync(frontendPath)) {
-    // Only frontend exists
-    workingDir = "/app/frontend";
-  } else if (fs.existsSync(backendPath)) {
-    // Only backend exists
-    workingDir = "/app/backend";
-  }
-
   // Run the Docker container
   const process = spawn(
     "docker",
@@ -441,7 +393,7 @@ RUN npm install -g pnpm
       "-e",
       "PNPM_STORE_PATH=/app/.pnpm-store",
       "-w",
-      workingDir,
+      "/app",
       `dyad-app-${appId}`,
       "sh",
       "-c",
@@ -572,227 +524,37 @@ export function registerAppHandlers() {
 
       await createFromTemplate({
         fullAppPath,
-        selectedTemplateId: params.selectedTemplateId,
-        selectedBackendFramework: params.selectedBackendFramework,
       });
 
       // Initialize git repo and create first commit
-      try {
-        logger.info(`Initializing Git repository for app: ${fullAppPath}`);
-
-        // Check if .git already exists (might happen if copy/app creation already set it up)
-        if (!fs.existsSync(path.join(fullAppPath, '.git'))) {
-          await git.init({
-            fs: fs,
-            dir: fullAppPath,
-            defaultBranch: "main",
-          });
-          logger.info(`Git repository initialized successfully`);
-        } else {
-          logger.info(`Git repository already exists, verifying...`);
-
-          // Verify the main branch exists
-          try {
-            const branches = await git.listBranches({ fs, dir: fullAppPath });
-            if (!branches.includes('main')) {
-              logger.warn(`Main branch not found, checking out main`);
-              await git.checkout({
-                fs,
-                dir: fullAppPath,
-                ref: 'main',
-                force: true, // Force checkout if needed
-              });
-            }
-          } catch (branchError) {
-            logger.warn(`Error checking branches, forcing main branch creation:`, branchError);
-            // Try to create main branch explicitly
-            try {
-              await git.checkout({
-                fs,
-                dir: fullAppPath,
-                ref: 'main',
-                force: true,
-              });
-            } catch (createError) {
-              logger.warn(`Failed to create main branch:`, createError);
-            }
-          }
-        }
-
-        // Stage all files
-        let addedSuccess = false;
-        try {
-          await git.add({
-            fs: fs,
-            dir: fullAppPath,
-            filepath: ".",
-          });
-          addedSuccess = true;
-          logger.info(`Files staged successfully`);
-        } catch (addError) {
-          logger.warn(`Failed to stage files:`, addError);
-          // Continue anyway - might be empty directory
-        }
-
-        // Create initial commit
-        if (addedSuccess) {
-          try {
-            const commitHash = await gitCommit({
-              path: fullAppPath,
-              message: "Init AliFullStack app",
-            });
-            logger.info(`Initial commit created: ${commitHash}`);
-
-            // Update chat with initial commit hash
-            await db
-              .update(chats)
-              .set({
-                initialCommitHash: commitHash,
-              })
-              .where(eq(chats.id, chat.id));
-          } catch (commitError) {
-            logger.error(`Failed to create initial commit:`, commitError);
-            // Don't fail the app creation for commit errors
-          }
-        } else {
-          logger.warn(`Skipping commit due to staging failure`);
-        }
-
-        logger.info(`Git setup completed for app ${app.id}`);
-      } catch (gitError) {
-        logger.error(`Failed to initialize Git repository:`, gitError);
-        // Don't fail app creation for Git errors - Git is optional
-        logger.warn(`App ${app.id} created without Git repository`);
-      }
-
-      return { app, chatId: chat.id };
-    },
-  );
-
-  handle(
-    "create-missing-folder",
-    async (
-      _,
-      params: CreateMissingFolderParams,
-    ): Promise<void> => {
-      const app = await db.query.apps.findFirst({
-        where: eq(apps.id, params.appId),
+      await git.init({
+        fs: fs,
+        dir: fullAppPath,
+        defaultBranch: "main",
       });
 
-      if (!app) {
-        throw new Error("App not found");
-      }
+      // Stage all files
+      await git.add({
+        fs: fs,
+        dir: fullAppPath,
+        filepath: ".",
+      });
 
-      const fullAppPath = getDyadAppPath(app.path);
-      const settings = readSettings();
+      // Create initial commit
+      const commitHash = await gitCommit({
+        path: fullAppPath,
+        message: "Init Dyad app",
+      });
 
-      if (params.folderType === "frontend") {
-        const templateId = params.templateId || settings.selectedTemplateId;
-        logger.info(`Creating missing frontend folder for app ${params.appId} with template: ${templateId}`);
+      // Update chat with initial commit hash
+      await db
+        .update(chats)
+        .set({
+          initialCommitHash: commitHash,
+        })
+        .where(eq(chats.id, chat.id));
 
-        await createFromTemplate({
-          fullAppPath,
-          selectedTemplateId: templateId,
-          selectedBackendFramework: null, // Don't create backend when just adding frontend
-        });
-
-        // Install frontend dependencies if they exist
-        const frontendPath = path.join(fullAppPath, "frontend");
-        logger.info(`Checking frontend path: ${frontendPath}`);
-        if (fs.existsSync(frontendPath)) {
-          logger.info(`Frontend directory exists at: ${frontendPath}`);
-          const packageJsonPath = path.join(frontendPath, "package.json");
-          logger.info(`Checking for package.json at: ${packageJsonPath}`);
-          if (fs.existsSync(packageJsonPath)) {
-            logger.info(`Found package.json, installing frontend dependencies in ${frontendPath}`);
-            try {
-              await installDependencies(frontendPath, "nodejs");
-            } catch (installError) {
-              logger.warn(`Failed to install frontend dependencies:`, installError);
-              // Continue with the process even if dependency installation fails
-            }
-          } else {
-            logger.error(`package.json not found at ${packageJsonPath}`);
-            // List files in frontend directory to debug
-            try {
-              const files = fs.readdirSync(frontendPath);
-              logger.info(`Files in frontend directory after creation: ${files.join(', ')}`);
-            } catch (listError) {
-              logger.error(`Could not list files in frontend directory:`, listError);
-            }
-
-            // Create a fallback package.json if the copy failed
-            logger.info(`Creating fallback package.json for frontend`);
-            const fallbackPackageJson = `{
-  "name": "frontend",
-  "version": "0.1.0",
-  "private": true,
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@vitejs/plugin-react": "^4.0.0",
-    "vite": "^4.3.0",
-    "typescript": "^5.0.0"
-  },
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  }
-}`;
-
-            try {
-              await fsPromises.writeFile(packageJsonPath, fallbackPackageJson, 'utf-8');
-              logger.info(`Created fallback package.json at ${packageJsonPath}`);
-              // Now try to install dependencies
-              await installDependencies(frontendPath, "nodejs");
-            } catch (fallbackError) {
-              logger.error(`Failed to create fallback package.json:`, fallbackError);
-            }
-          }
-        } else {
-          logger.error(`Frontend directory not found at ${frontendPath}`);
-        }
-      } else if (params.folderType === "backend") {
-        const backendFramework = params.backendFramework || settings.selectedBackendFramework;
-        if (!backendFramework) {
-          throw new Error("No backend framework selected. Please select a backend framework first.");
-        }
-
-        logger.info(`Creating missing backend folder for app ${params.appId} with framework: ${backendFramework}`);
-
-        // Only create backend folder
-        const backendPath = path.join(fullAppPath, "backend");
-        if (!fs.existsSync(backendPath)) {
-          await fsPromises.mkdir(backendPath, { recursive: true });
-          await setupBackendFramework(backendPath, backendFramework);
-
-          // Install dependencies for the backend framework
-          try {
-            logger.info(`Installing dependencies for ${backendFramework} in ${backendPath}`);
-            await installDependencies(backendPath, backendFramework);
-          } catch (installError) {
-            logger.warn(`Failed to install dependencies for ${backendFramework}:`, installError);
-            // Continue with the process even if dependency installation fails
-          }
-
-          // Commit the changes
-          await git.add({
-            fs: fs,
-            dir: fullAppPath,
-            filepath: "backend",
-          });
-
-          await gitCommit({
-            path: fullAppPath,
-            message: `Add backend folder with ${backendFramework}`,
-          });
-        }
-      }
+      return { app, chatId: chat.id };
     },
   );
 
@@ -853,7 +615,7 @@ export function registerAppHandlers() {
         // Create initial commit
         await gitCommit({
           path: newAppPath,
-          message: "Init AliFullStack app",
+          message: "Init Dyad app",
         });
       }
 
@@ -889,51 +651,17 @@ export function registerAppHandlers() {
 
     // Get app files
     const appPath = getDyadAppPath(app.path);
-    let allFiles: string[] = [];
+    let files: string[] = [];
 
-    // Scan frontend folder if it exists
-    const frontendPath = path.join(appPath, "frontend");
-    if (fs.existsSync(frontendPath)) {
-      try {
-        const frontendFiles = getFilesRecursively(frontendPath, frontendPath);
-        const frontendFilesWithPrefix = frontendFiles.map((filePath) => {
-          const normalized = normalizePath(filePath);
-          return `frontend/${normalized}`;
-        });
-        allFiles.push(...frontendFilesWithPrefix);
-      } catch (error) {
-        logger.error(`Error reading frontend files for app ${appId}:`, error);
-      }
+    try {
+      files = getFilesRecursively(appPath, appPath);
+      // Normalize the path to use forward slashes so file tree (UI)
+      // can parse it more consistently across platforms.
+      files = files.map((path) => normalizePath(path));
+    } catch (error) {
+      logger.error(`Error reading files for app ${appId}:`, error);
+      // Return app even if files couldn't be read
     }
-
-    // Scan backend folder if it exists
-    const backendPath = path.join(appPath, "backend");
-    if (fs.existsSync(backendPath)) {
-      try {
-        const backendFiles = getFilesRecursively(backendPath, backendPath);
-        const backendFilesWithPrefix = backendFiles.map((filePath) => {
-          const normalized = normalizePath(filePath);
-          return `backend/${normalized}`;
-        });
-        allFiles.push(...backendFilesWithPrefix);
-      } catch (error) {
-        logger.error(`Error reading backend files for app ${appId}:`, error);
-      }
-    }
-
-    // If no frontend/backend folders exist, scan the root (for backward compatibility)
-    if (allFiles.length === 0) {
-      try {
-        allFiles = getFilesRecursively(appPath, appPath);
-        // Normalize the path to use forward slashes so file tree (UI)
-        // can parse it more consistently across platforms.
-        allFiles = allFiles.map((filePath) => normalizePath(filePath));
-      } catch (error) {
-        logger.error(`Error reading files for app ${appId}:`, error);
-      }
-    }
-
-    const files = allFiles;
 
     let supabaseProjectName: string | null = null;
     const settings = readSettings();
@@ -976,31 +704,7 @@ export function registerAppHandlers() {
       }
 
       const appPath = getDyadAppPath(app.path);
-      let fullPath: string;
-
-      // Check if the filePath starts with frontend/ or backend/
-      if (filePath.startsWith("frontend/")) {
-        const frontendPath = path.join(appPath, "frontend");
-        const relativePath = filePath.substring("frontend/".length);
-        fullPath = path.join(frontendPath, relativePath);
-      } else if (filePath.startsWith("backend/")) {
-        const backendPath = path.join(appPath, "backend");
-        const relativePath = filePath.substring("backend/".length);
-        fullPath = path.join(backendPath, relativePath);
-      } else {
-        // For backward compatibility, try frontend first, then backend, then root
-        const frontendPath = path.join(appPath, "frontend", filePath);
-        const backendPath = path.join(appPath, "backend", filePath);
-        const rootPath = path.join(appPath, filePath);
-
-        if (fs.existsSync(frontendPath)) {
-          fullPath = frontendPath;
-        } else if (fs.existsSync(backendPath)) {
-          fullPath = backendPath;
-        } else {
-          fullPath = rootPath;
-        }
-      }
+      const fullPath = path.join(appPath, filePath);
 
       // Check if the path is within the app directory (security check)
       if (!fullPath.startsWith(appPath)) {
@@ -1252,34 +956,10 @@ export function registerAppHandlers() {
       }
 
       const appPath = getDyadAppPath(app.path);
-      let finalFullPath: string;
-
-      // Check if the filePath starts with frontend/ or backend/
-      if (filePath.startsWith("frontend/")) {
-        const frontendPath = path.join(appPath, "frontend");
-        const relativePath = filePath.substring("frontend/".length);
-        finalFullPath = path.join(frontendPath, relativePath);
-      } else if (filePath.startsWith("backend/")) {
-        const backendPath = path.join(appPath, "backend");
-        const relativePath = filePath.substring("backend/".length);
-        finalFullPath = path.join(backendPath, relativePath);
-      } else {
-        // For backward compatibility, try frontend first, then backend, then root
-        const frontendPath = path.join(appPath, "frontend", filePath);
-        const backendPath = path.join(appPath, "backend", filePath);
-        const rootPath = path.join(appPath, filePath);
-
-        if (fs.existsSync(path.dirname(frontendPath))) {
-          finalFullPath = frontendPath;
-        } else if (fs.existsSync(path.dirname(backendPath))) {
-          finalFullPath = backendPath;
-        } else {
-          finalFullPath = rootPath;
-        }
-      }
+      const fullPath = path.join(appPath, filePath);
 
       // Check if the path is within the app directory (security check)
-      if (!finalFullPath.startsWith(appPath)) {
+      if (!fullPath.startsWith(appPath)) {
         throw new Error("Invalid file path");
       }
 
@@ -1301,11 +981,11 @@ export function registerAppHandlers() {
       }
 
       // Ensure directory exists
-      const dirPath = path.dirname(finalFullPath);
+      const dirPath = path.dirname(fullPath);
       await fsPromises.mkdir(dirPath, { recursive: true });
 
       try {
-        await fsPromises.writeFile(finalFullPath, content, "utf-8");
+        await fsPromises.writeFile(fullPath, content, "utf-8");
 
         // Check if git repository exists and commit the change
         if (fs.existsSync(path.join(appPath, ".git"))) {
@@ -1767,62 +1447,5 @@ async function cleanUpPort(port: number) {
     await stopDockerContainersOnPort(port);
   } else {
     await killProcessOnPort(port);
-  }
-}
-
-async function installDependencies(projectPath: string, framework: string) {
-  const installCommand = getInstallCommand(framework);
-
-  return new Promise<void>((resolve, reject) => {
-    const installProcess = spawn(installCommand, [], {
-      cwd: projectPath,
-      shell: true,
-      stdio: "pipe",
-    });
-
-    logger.info(`Running install command: ${installCommand} in ${projectPath}`);
-
-    let installOutput = "";
-    let installError = "";
-
-    installProcess.stdout?.on("data", (data) => {
-      installOutput += data.toString();
-    });
-
-    installProcess.stderr?.on("data", (data) => {
-      installError += data.toString();
-    });
-
-    installProcess.on("close", (code) => {
-      if (code === 0) {
-        logger.info(`Successfully installed dependencies for ${framework}`);
-        resolve();
-      } else {
-        logger.warn(`Dependency installation failed for ${framework} (code: ${code}): ${installError}`);
-        // Don't reject here - we want to continue even if installation fails
-        // as the framework files are still created and user can install manually
-        resolve();
-      }
-    });
-
-    installProcess.on("error", (err) => {
-      logger.error(`Failed to start dependency installation for ${framework}:`, err);
-      // Don't reject here for the same reason as above
-      resolve();
-    });
-  });
-}
-
-function getInstallCommand(framework: string): string {
-  switch (framework) {
-    case "nodejs":
-      return "npm install";
-    case "django":
-    case "fastapi":
-    case "flask":
-      return "pip install -r requirements.txt";
-    default:
-      logger.warn(`Unknown framework for dependency installation: ${framework}`);
-      return "";
   }
 }

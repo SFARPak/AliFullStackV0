@@ -3,7 +3,7 @@ import { readSettings, writeSettings } from "../main/settings";
 import {
   SupabaseManagementAPI,
   SupabaseManagementAPIError,
-} from "@SFARPak/supabase-management-js";
+} from "@dyad-sh/supabase-management-js";
 import log from "electron-log";
 import { IS_TEST_BUILD } from "../ipc/utils/test_utils";
 
@@ -46,7 +46,7 @@ export async function refreshSupabaseToken(): Promise<void> {
   try {
     // Make request to Supabase refresh endpoint
     const response = await fetch(
-      "https://supabase-oauth.alifullstack.com/api/connect-supabase/refresh",
+      "https://supabase-oauth.dyad.sh/api/connect-supabase/refresh",
       {
         method: "POST",
         headers: {
@@ -187,7 +187,7 @@ export async function deploySupabaseFunctions({
     JSON.stringify({
       entrypoint_path: "index.ts",
       name: functionName,
-      // See: https://github.com/SFARPak/dyad/issues/1010
+      // See: https://github.com/dyad-sh/dyad/issues/1010
       verify_jwt: false,
     }),
   );

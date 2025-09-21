@@ -62,14 +62,12 @@ export function useStreamChat({
     async ({
       prompt,
       chatId,
-      chatMode,
       redo,
       attachments,
       selectedComponent,
     }: {
       prompt: string;
       chatId: number;
-      chatMode?: "build" | "ask" | "backend";
       redo?: boolean;
       attachments?: FileAttachment[];
       selectedComponent?: ComponentSelection | null;
@@ -89,7 +87,6 @@ export function useStreamChat({
         IpcClient.getInstance().streamMessage(prompt, {
           selectedComponent: selectedComponent ?? null,
           chatId,
-          chatMode,
           redo,
           attachments,
           onUpdate: (updatedMessages: Message[]) => {

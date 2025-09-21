@@ -1,12 +1,10 @@
 import { ipcMain } from "electron";
 import { db } from "../../db";
-import { startBackendServer } from "./createFromTemplate";
 import { apps, chats, messages } from "../../db/schema";
 import { desc, eq, and, like } from "drizzle-orm";
 import type { ChatSearchResult, ChatSummary } from "../../lib/schemas";
 import * as git from "isomorphic-git";
 import * as fs from "fs";
-import * as path from "path";
 import { createLoggedHandler } from "./safe_handle";
 
 import log from "electron-log";
@@ -174,50 +172,4 @@ export function registerChatHandlers() {
       return uniqueChats;
     },
   );
-
-  handle("start-backend-server", async (_, appId: number): Promise<void> => {
-    // Get the app's path
-    const app = await db.query.apps.findFirst({
-      where: eq(apps.id, appId),
-      columns: {
-        path: true,
-      },
-    });
-
-    if (!app) {
-      throw new Error("App not found");
-    }
-
-    const backendPath = path.join(getDyadAppPath(app.path), "backend");
-
-    // Check if backend directory exists
-    if (!fs.existsSync(backendPath)) {
-      logger.warn(`Backend directory not found: ${backendPath}`);
-      return;
-    }
-
-    // Determine framework type from backend files
-    let framework: string | null = null;
-    if (fs.existsSync(path.join(backendPath, "package.json"))) {
-      framework = "nodejs";
-    } else if (fs.existsSync(path.join(backendPath, "requirements.txt"))) {
-      // Check for framework-specific files
-      if (fs.existsSync(path.join(backendPath, "manage.py"))) {
-        framework = "django";
-      } else if (fs.existsSync(path.join(backendPath, "main.py"))) {
-        framework = "fastapi";
-      } else if (fs.existsSync(path.join(backendPath, "app.py"))) {
-        framework = "flask";
-      } else {
-        framework = "python";
-      }
-    }
-
-    if (framework) {
-      logger.info(`Starting backend server for framework: ${framework}`);
-      await startBackendServer(backendPath, framework);
-    } else {
-      logger.warn("No recognized backend framework found");
-    }
-  });
 }

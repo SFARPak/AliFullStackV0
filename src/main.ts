@@ -68,13 +68,13 @@ export async function onReady() {
     // but this is more explicit and falls back to stable if there's an unknown
     // release channel.
     const postfix = settings.releaseChannel === "beta" ? "beta" : "stable";
-    const host = `https://api.alifullstack.com/v1/update/${postfix}`;
+    const host = `https://api.dyad.sh/v1/update/${postfix}`;
     logger.info("Auto-update release channel=", postfix);
     updateElectronApp({
       logger,
       updateSource: {
         type: UpdateSourceType.ElectronPublicUpdateService,
-        repo: "SFARPak/dyad",
+        repo: "dyad-sh/dyad",
         host,
       },
     }); // additional configuration options available
@@ -261,19 +261,6 @@ function handleDeepLinkReturn(url: string) {
     mainWindow?.webContents.send("deep-link-received", {
       type: parsed.hostname,
     });
-    return;
-  }
-  // dyad://roocode-auth?code=abc&state=xyz
-  if (parsed.hostname === "roocode-auth") {
-    const code = parsed.searchParams.get("code");
-    const state = parsed.searchParams.get("state");
-    if (!code || !state) {
-      dialog.showErrorBox("Invalid Roo Code Auth URL", "Expected code and state parameters");
-      return;
-    }
-    // Handle the authentication callback
-    // This will be processed by the IPC handler when the renderer checks auth status
-    mainWindow?.webContents.send("roocode-auth-callback", { code, state });
     return;
   }
   dialog.showErrorBox("Invalid deep link URL", url);

@@ -5,14 +5,12 @@ import { ChatModeSelector } from "./ChatModeSelector";
 
 export function ChatInputControls({
   showContextFilesPicker = false,
-  appId,
 }: {
   showContextFilesPicker?: boolean;
-  appId?: number;
 }) {
   return (
     <div className="flex">
-      <ChatModeSelector appId={appId} />
+      <ChatModeSelector />
       <div className="w-1.5"></div>
       <ModelPicker />
       <div className="w-1.5"></div>

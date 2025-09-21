@@ -134,7 +134,6 @@ const validReceiveChannels = [
   "github:flow-success",
   "github:flow-error",
   "deep-link-received",
-  "roocode-auth-callback",
   // Help bot
   "help:chat:response:chunk",
   "help:chat:response:end",

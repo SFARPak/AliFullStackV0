@@ -494,20 +494,9 @@ ${componentSnippet}
           );
         }
 
-        const finalChatMode = req.chatMode || settings.selectedChatMode;
-
-        // For backend mode, read AI_RULES.md from backend folder if it exists
-        let aiRulesPath = getDyadAppPath(updatedChat.app.path);
-        if (finalChatMode === "backend") {
-          const backendRulesPath = path.join(aiRulesPath, "backend", "AI_RULES.md");
-          if (fs.existsSync(backendRulesPath)) {
-            aiRulesPath = path.join(aiRulesPath, "backend");
-          }
-        }
-
         let systemPrompt = constructSystemPrompt({
-          aiRules: await readAiRules(aiRulesPath),
-          chatMode: finalChatMode,
+          aiRules: await readAiRules(getDyadAppPath(updatedChat.app.path)),
+          chatMode: settings.selectedChatMode,
         });
 
         // Add information about mentioned apps if any
@@ -518,26 +507,22 @@ ${componentSnippet}
 
           systemPrompt += `\n\n# Referenced Apps\nThe user has mentioned the following apps in their prompt: ${mentionedAppsList}. Their codebases have been included in the context for your reference. When referring to these apps, you can understand their structure and code to provide better assistance, however you should NOT edit the files in these referenced apps. The referenced apps are NOT part of the current app and are READ-ONLY.`;
         }
-
-        // Only add Supabase instructions for frontend/build mode, not backend mode
-        if (finalChatMode !== "backend") {
-          if (
-            updatedChat.app?.supabaseProjectId &&
-            settings.supabase?.accessToken?.value
-          ) {
-            systemPrompt +=
-              "\n\n" +
-              SUPABASE_AVAILABLE_SYSTEM_PROMPT +
-              "\n\n" +
-              (await getSupabaseContext({
-                supabaseProjectId: updatedChat.app.supabaseProjectId,
-              }));
-          } else if (
-            // Neon projects don't need Supabase.
-            !updatedChat.app?.neonProjectId
-          ) {
-            systemPrompt += "\n\n" + SUPABASE_NOT_AVAILABLE_SYSTEM_PROMPT;
-          }
+        if (
+          updatedChat.app?.supabaseProjectId &&
+          settings.supabase?.accessToken?.value
+        ) {
+          systemPrompt +=
+            "\n\n" +
+            SUPABASE_AVAILABLE_SYSTEM_PROMPT +
+            "\n\n" +
+            (await getSupabaseContext({
+              supabaseProjectId: updatedChat.app.supabaseProjectId,
+            }));
+        } else if (
+          // Neon projects don't need Supabase.
+          !updatedChat.app?.neonProjectId
+        ) {
+          systemPrompt += "\n\n" + SUPABASE_NOT_AVAILABLE_SYSTEM_PROMPT;
         }
         const isSummarizeIntent = req.prompt.startsWith(
           "Summarize from chat-id=",

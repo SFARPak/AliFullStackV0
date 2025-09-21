@@ -30,7 +30,6 @@ import { registerTemplateHandlers } from "./handlers/template_handlers";
 import { registerPortalHandlers } from "./handlers/portal_handlers";
 import { registerPromptHandlers } from "./handlers/prompt_handlers";
 import { registerHelpBotHandlers } from "./handlers/help_bot_handlers";
-import { registerRooCodeAuthHandlers } from "./handlers/roocode_auth_handlers";
 
 export function registerIpcHandlers() {
   // Register all IPC handlers by category
@@ -66,5 +65,4 @@ export function registerIpcHandlers() {
   registerPortalHandlers();
   registerPromptHandlers();
   registerHelpBotHandlers();
-  registerRooCodeAuthHandlers();
 }

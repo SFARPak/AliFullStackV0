@@ -56,12 +56,12 @@ try {
 }
 
 try {
-  const dyadShimPath = path.join(__dirname, "SFARPakim.js");
+  const dyadShimPath = path.join(__dirname, "dyad-shim.js");
   dyadShimContent = fs.readFileSync(dyadShimPath, "utf-8");
-  parentPort?.postMessage("[proxy-worker] SFARPakim.js loaded.");
+  parentPort?.postMessage("[proxy-worker] dyad-shim.js loaded.");
 } catch (error) {
   parentPort?.postMessage(
-    `[proxy-worker] Failed to read SFARPakim.js: ${error.message}`,
+    `[proxy-worker] Failed to read dyad-shim.js: ${error.message}`,
   );
 }
 

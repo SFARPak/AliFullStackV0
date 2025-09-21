@@ -17,7 +17,7 @@ async function verifyReleaseAssets() {
     console.log(`🔍 Verifying release assets for version ${version}...`);
 
     // GitHub API configuration
-    const owner = "SFARPak";
+    const owner = "dyad-sh";
     const repo = "dyad";
     const token = process.env.GITHUB_TOKEN;
 

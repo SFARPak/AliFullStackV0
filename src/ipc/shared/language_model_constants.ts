@@ -341,16 +341,6 @@ export const MODEL_OPTIONS: Record<string, ModelOption[]> = {
       temperature: 0,
     },
   ],
-  roocode: [
-    {
-      name: "roocode-chat",
-      displayName: "Roo Code Chat",
-      description: "Roo Code's integrated chat model",
-      maxOutputTokens: 32_000,
-      contextWindow: 256_000,
-      temperature: 0,
-    },
-  ],
 };
 
 export const TURBO_MODELS: LanguageModel[] = [
@@ -388,7 +378,6 @@ export const PROVIDER_TO_ENV_VAR: Record<string, string> = {
   azure: "AZURE_API_KEY",
   xai: "XAI_API_KEY",
   bedrock: "AWS_BEARER_TOKEN_BEDROCK",
-  roocode: "ROO_CODE_API_KEY",
 };
 
 export const CLOUD_PROVIDERS: Record<
@@ -435,7 +424,7 @@ export const CLOUD_PROVIDERS: Record<
   },
   auto: {
     displayName: "Dyad",
-    websiteUrl: "https://academy.alifullstack.com/settings",
+    websiteUrl: "https://academy.dyad.sh/settings",
     gatewayPrefix: "dyad/",
   },
   azure: {
@@ -457,13 +446,6 @@ export const CLOUD_PROVIDERS: Record<
     hasFreeTier: false,
     websiteUrl: "https://console.aws.amazon.com/bedrock/",
     gatewayPrefix: "bedrock/",
-    secondary: true,
-  },
-  roocode: {
-    displayName: "Roo Code",
-    hasFreeTier: false,
-    websiteUrl: "https://roocode.com",
-    gatewayPrefix: "roocode/",
     secondary: true,
   },
 };

@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/accordion";
 import { AzureConfiguration } from "./AzureConfiguration";
 import { VertexConfiguration } from "./VertexConfiguration";
-import { RooCodeConfiguration } from "./RooCodeConfiguration";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { UserSettings } from "@/lib/schemas";
@@ -56,10 +55,6 @@ export function ApiKeyConfiguration({
   // Special handling for Google Vertex AI which uses service account credentials
   if (provider === "vertex") {
     return <VertexConfiguration />;
-  }
-  // Special handling for Roo Code which uses OAuth authentication
-  if (provider === "roocode") {
-    return <RooCodeConfiguration provider={provider} />;
   }
 
   const envApiKey = envVarName ? envVars[envVarName] : undefined;

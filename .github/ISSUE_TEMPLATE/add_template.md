@@ -6,7 +6,7 @@ labels: "add-template"
 assignees: ""
 ---
 
-If you'd like to add a template to Dyad Hub, follow the [Add Template guide](https://alifullstack.com/docs/templates/add-template).
+If you'd like to add a template to Dyad Hub, follow the [Add Template guide](https://dyad.sh/docs/templates/add-template).
 
 **Template name:**
 

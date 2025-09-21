@@ -13,47 +13,14 @@ import {
 import { useSettings } from "@/hooks/useSettings";
 import type { ChatMode } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
-import { IpcClient } from "@/ipc/ipc_client";
-import { showError } from "@/lib/toast";
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
 
-export function ChatModeSelector({ appId }: { appId?: number }) {
+export function ChatModeSelector() {
   const { settings, updateSettings } = useSettings();
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
 
   const selectedMode = settings?.selectedChatMode || "build";
 
-  const handleModeChange = async (value: string) => {
-    const newMode = value as ChatMode;
-
-    // If switching to backend mode and we have an app ID, check if backend folder exists
-    if (newMode === "backend" && appId) {
-      try {
-        setIsCreatingFolder(true);
-        // Get the app to check its structure
-        const app = await IpcClient.getInstance().getApp(appId);
-        const backendFiles = app.files.filter((file: string) => file.startsWith("backend/"));
-
-        // If no backend files exist, create the backend folder
-        if (backendFiles.length === 0) {
-          await IpcClient.getInstance().createMissingFolder({
-            appId,
-            folderType: "backend",
-            backendFramework: settings?.selectedBackendFramework,
-          });
-        }
-      } catch (error) {
-        console.error("Error creating backend folder:", error);
-        showError(error);
-        return; // Don't change the mode if folder creation failed
-      } finally {
-        setIsCreatingFolder(false);
-      }
-    }
-
-    // Update the chat mode
-    updateSettings({ selectedChatMode: newMode });
+  const handleModeChange = (value: string) => {
+    updateSettings({ selectedChatMode: value as ChatMode });
   };
 
   const getModeDisplayName = (mode: ChatMode) => {
@@ -62,15 +29,13 @@ export function ChatModeSelector({ appId }: { appId?: number }) {
         return "Build";
       case "ask":
         return "Ask";
-      case "backend":
-        return "Backend";
       default:
         return "Build";
     }
   };
 
   return (
-    <Select value={selectedMode} onValueChange={handleModeChange} disabled={isCreatingFolder}>
+    <Select value={selectedMode} onValueChange={handleModeChange}>
       <Tooltip>
         <TooltipTrigger asChild>
           <MiniSelectTrigger
@@ -83,19 +48,10 @@ export function ChatModeSelector({ appId }: { appId?: number }) {
             )}
             size="sm"
           >
-            {isCreatingFolder ? (
-              <div className="flex items-center gap-1">
-                <Loader2 size={12} className="animate-spin" />
-                <span>Creating...</span>
-              </div>
-            ) : (
-              <SelectValue>{getModeDisplayName(selectedMode)}</SelectValue>
-            )}
+            <SelectValue>{getModeDisplayName(selectedMode)}</SelectValue>
           </MiniSelectTrigger>
         </TooltipTrigger>
-        <TooltipContent>
-          {isCreatingFolder ? "Creating backend folder..." : "Open mode menu"}
-        </TooltipContent>
+        <TooltipContent>Open mode menu</TooltipContent>
       </Tooltip>
       <SelectContent align="start" onCloseAutoFocus={(e) => e.preventDefault()}>
         <SelectItem value="build">
@@ -111,14 +67,6 @@ export function ChatModeSelector({ appId }: { appId?: number }) {
             <span className="font-medium">Ask</span>
             <span className="text-xs text-muted-foreground">
               Ask questions about the app
-            </span>
-          </div>
-        </SelectItem>
-        <SelectItem value="backend">
-          <div className="flex flex-col items-start">
-            <span className="font-medium">Backend</span>
-            <span className="text-xs text-muted-foreground">
-              Backend development with Roo-Code
             </span>
           </div>
         </SelectItem>

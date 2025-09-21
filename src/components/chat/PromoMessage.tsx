@@ -56,7 +56,7 @@ export function Message({ spans }: MessageConfig) {
 export const TURBO_EDITS_PROMO_MESSAGE: MessageConfig = {
   spans: [
     { type: "text", content: "Tired of waiting on AI?" },
-    { type: "link", content: " Get AliFullStack Pro", url: "https://alifullstack.com/pro#ai" },
+    { type: "link", content: " Get Dyad Pro", url: "https://dyad.sh/pro#ai" },
     { type: "text", content: " for faster edits with Turbo Edits." },
   ],
 };
@@ -66,8 +66,8 @@ export const SMART_CONTEXT_PROMO_MESSAGE: MessageConfig = {
     { type: "text", content: "Save up to 5x on AI costs with " },
     {
       type: "link",
-      content: "AliFullStack Pro's Smart Context",
-      url: "https://alifullstack.com/pro#ai",
+      content: "Dyad Pro's Smart Context",
+      url: "https://dyad.sh/pro#ai",
     },
   ],
 };
@@ -90,8 +90,8 @@ export const REDDIT_TIP: MessageConfig = {
     },
     {
       type: "link",
-      content: "AliFullStack subreddit",
-      url: "https://www.reddit.com/r/alifullstackbuilders/",
+      content: "Dyad subreddit",
+      url: "https://www.reddit.com/r/dyadbuilders/",
     },
   ],
 };
@@ -124,7 +124,7 @@ export const BUILD_A_BIBLE_APP_TIP: MessageConfig = {
     },
     {
       type: "text",
-      content: " the creator of AliFullStack build a Bible app step-by-step",
+      content: " the creator of Dyad build a Bible app step-by-step",
     },
   ],
 };
@@ -138,12 +138,12 @@ export const DEBUGGING_TIPS_TIP: MessageConfig = {
     {
       type: "link",
       content: "debugging tips",
-      url: "https://www.alifullstack.com/docs/guides/debugging",
+      url: "https://www.dyad.sh/docs/guides/debugging",
     },
   ],
 };
 
-// Advanced tip: Customize your AI rules https://www.alifullstack.com/docs/guides/ai-rules
+// Advanced tip: Customize your AI rules https://www.dyad.sh/docs/guides/ai-rules
 export const AI_RULES_TIP: MessageConfig = {
   spans: [
     {
@@ -153,7 +153,7 @@ export const AI_RULES_TIP: MessageConfig = {
     {
       type: "link",
       content: "AI rules",
-      url: "https://www.alifullstack.com/docs/guides/ai-rules",
+      url: "https://www.dyad.sh/docs/guides/ai-rules",
     },
   ],
 };
@@ -167,7 +167,7 @@ export const NEW_CHAT_TIP: MessageConfig = {
   ],
 };
 
-// Want to know what's next? Checkout our roadmap https://www.alifullstack.com/docs/roadmap
+// Want to know what's next? Checkout our roadmap https://www.dyad.sh/docs/roadmap
 export const ROADMAP_TIP: MessageConfig = {
   spans: [
     {
@@ -177,22 +177,22 @@ export const ROADMAP_TIP: MessageConfig = {
     {
       type: "link",
       content: "roadmap",
-      url: "https://www.alifullstack.com/docs/roadmap",
+      url: "https://www.dyad.sh/docs/roadmap",
     },
   ],
 };
 
-// Like AliFullStack? Star it on GitHub https://github.com/SFARPak/AliFullStack/
+// Like Dyad? Star it on GitHub https://github.com/dyad-sh/dyad/
 export const GITHUB_TIP: MessageConfig = {
   spans: [
     {
       type: "text",
-      content: "Like AliFullStack? Star it on ",
+      content: "Like Dyad? Star it on ",
     },
     {
       type: "link",
       content: "GitHub",
-      url: "https://github.com/SFARPak/AliFullStack",
+      url: "https://github.com/dyad-sh/dyad",
     },
   ],
 };

@@ -64,7 +64,7 @@ jobs:
         with:
           version: latest
       - name: Clone nextjs-template
-        run: git clone --depth 1 https://github.com/SFARPak/nextjs-template.git nextjs-template
+        run: git clone --depth 1 https://github.com/dyad-sh/nextjs-template.git nextjs-template
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash

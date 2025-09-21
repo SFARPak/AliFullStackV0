@@ -12,34 +12,19 @@ import {
 import { SyncVirtualFileSystemImpl } from "../../shared/VirtualFilesystem";
 
 function loadLocalTypeScript(appPath: string): typeof import("typescript") {
-  const possiblePaths = [
-    appPath, // Root app directory (for backend apps)
-    path.join(appPath, "frontend"), // Frontend subdirectory (for scaffold apps)
-  ];
-
-  for (const searchPath of possiblePaths) {
-    try {
-      // Try to load TypeScript from the project's node_modules
-      const requirePath = require.resolve("typescript", { paths: [searchPath] });
-      const ts = require(requirePath);
-      return ts;
-    } catch (error) {
-      // Continue to next path if this one fails
-      continue;
-    }
+  try {
+    // Try to load TypeScript from the project's node_modules
+    const requirePath = require.resolve("typescript", { paths: [appPath] });
+    const ts = require(requirePath);
+    return ts;
+  } catch (error) {
+    throw new Error(
+      `Failed to load TypeScript from ${appPath} because of ${error}`,
+    );
   }
-
-  throw new Error(
-    `Failed to load TypeScript from any of the following paths: ${possiblePaths.join(", ")}`,
-  );
 }
 
 function findTypeScriptConfig(appPath: string): string {
-  const possiblePaths = [
-    appPath, // Root app directory (for backend apps)
-    path.join(appPath, "frontend"), // Frontend subdirectory (for scaffold apps)
-  ];
-
   const possibleConfigs = [
     // For vite applications, we want to check tsconfig.app.json, since it's the
     // most important one (client-side app).
@@ -51,17 +36,15 @@ function findTypeScriptConfig(appPath: string): string {
     "tsconfig.json",
   ];
 
-  for (const searchPath of possiblePaths) {
-    for (const config of possibleConfigs) {
-      const configPath = path.join(searchPath, config);
-      if (fs.existsSync(configPath)) {
-        return configPath;
-      }
+  for (const config of possibleConfigs) {
+    const configPath = path.join(appPath, config);
+    if (fs.existsSync(configPath)) {
+      return configPath;
     }
   }
 
   throw new Error(
-    `No TypeScript configuration file found in any of the following paths: ${possiblePaths.map(p => possibleConfigs.map(c => path.join(p, c))).flat().join(", ")}`,
+    `No TypeScript configuration file found in ${appPath}. Expected one of: ${possibleConfigs.join(", ")}`,
   );
 }
 

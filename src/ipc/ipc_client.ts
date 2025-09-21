@@ -120,10 +120,6 @@ export class IpcClient {
     }
   >;
   private constructor() {
-    // Guard against window.electron not being available (e.g., during SSR or before preload)
-    if (!(window as any).electron || !(window as any).electron.ipcRenderer) {
-      throw new Error("Electron IPC renderer not available. Make sure the preload script has loaded.");
-    }
     this.ipcRenderer = (window as any).electron.ipcRenderer as IpcRenderer;
     this.chatStreams = new Map();
     this.appStreams = new Map();
@@ -355,7 +351,6 @@ export class IpcClient {
     options: {
       selectedComponent: ComponentSelection | null;
       chatId: number;
-      chatMode?: "build" | "ask" | "backend";
       redo?: boolean;
       attachments?: FileAttachment[];
       onUpdate: (messages: Message[]) => void;
@@ -366,7 +361,6 @@ export class IpcClient {
   ): void {
     const {
       chatId,
-      chatMode,
       redo,
       attachments,
       selectedComponent,
@@ -408,7 +402,6 @@ export class IpcClient {
             .invoke("chat:stream", {
               prompt,
               chatId,
-              chatMode,
               redo,
               selectedComponent,
               attachments: fileDataArray,
@@ -430,7 +423,6 @@ export class IpcClient {
         .invoke("chat:stream", {
           prompt,
           chatId,
-          chatMode,
           redo,
           selectedComponent,
         })
@@ -1211,28 +1203,5 @@ export class IpcClient {
 
   public cancelHelpChat(sessionId: string): void {
     this.ipcRenderer.invoke("help:chat:cancel", sessionId).catch(() => {});
-  }
-
-  // Start backend server
-  public async startBackendServer(appId: number): Promise<void> {
-    return this.ipcRenderer.invoke("start-backend-server", appId);
-  }
-
-  // Create missing folder (frontend or backend)
-  public async createMissingFolder(params: { appId: number; folderType: "frontend" | "backend"; templateId?: string; backendFramework?: string }): Promise<void> {
-    return this.ipcRenderer.invoke("create-missing-folder", params);
-  }
-
-  // Roo Code authentication methods
-  public async roocodeLogin(): Promise<void> {
-    return this.ipcRenderer.invoke("roocode:login");
-  }
-
-  public async roocodeLogout(): Promise<void> {
-    return this.ipcRenderer.invoke("roocode:logout");
-  }
-
-  public async roocodeAuthStatus(): Promise<{ isAuthenticated: boolean; userInfo?: any }> {
-    return this.ipcRenderer.invoke("roocode:auth-status");
   }
 }

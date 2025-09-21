@@ -16,8 +16,6 @@ import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import { Console } from "./Console";
 import { useRunApp } from "@/hooks/useRunApp";
 import { PublishPanel } from "./PublishPanel";
-import { useSidebar } from "@/components/ui/sidebar";
-import { useSettings } from "@/hooks/useSettings";
 
 interface ConsoleHeaderProps {
   isOpen: boolean;
@@ -51,27 +49,17 @@ const ConsoleHeader = ({
 
 // Main PreviewPanel component
 export function PreviewPanel() {
-  const [previewMode, setPreviewMode] = useAtom(previewModeAtom);
+  const [previewMode] = useAtom(previewModeAtom);
   const selectedAppId = useAtomValue(selectedAppIdAtom);
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const { runApp, stopApp, loading, app } = useRunApp();
   const runningAppIdRef = useRef<number | null>(null);
   const key = useAtomValue(previewPanelKeyAtom);
   const appOutput = useAtomValue(appOutputAtom);
-  const { state: sidebarState, toggleSidebar } = useSidebar();
-  const { settings } = useSettings();
 
   const messageCount = appOutput.length;
   const latestMessage =
     messageCount > 0 ? appOutput[messageCount - 1]?.message : undefined;
-
-  // Auto-switch to "code" mode for backend development
-  useEffect(() => {
-    if (settings?.selectedChatMode === "backend" && previewMode === "preview") {
-      setPreviewMode("code");
-    }
-  }, [settings?.selectedChatMode, previewMode, setPreviewMode]);
-
 
   useEffect(() => {
     const previousAppId = runningAppIdRef.current;
@@ -91,11 +79,6 @@ export function PreviewPanel() {
         console.debug("Starting new app", selectedAppId);
         runApp(selectedAppId); // Consider adding error handling for the promise if needed
         runningAppIdRef.current = selectedAppId; // Update ref to the new running app ID
-
-        // Close sidebar when app starts running
-        if (sidebarState === "expanded") {
-          toggleSidebar();
-        }
       } else {
         // If selectedAppId is null, ensure no app is marked as running
         runningAppIdRef.current = null;

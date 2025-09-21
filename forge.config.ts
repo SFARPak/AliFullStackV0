@@ -97,7 +97,7 @@ const config: ForgeConfig = {
       name: "@electron-forge/publisher-github",
       config: {
         repository: {
-          owner: "SFARPak",
+          owner: "dyad-sh",
           name: "dyad",
         },
         draft: true,

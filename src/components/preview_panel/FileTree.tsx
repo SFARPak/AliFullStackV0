@@ -18,12 +18,8 @@ interface TreeNode {
 const buildFileTree = (files: string[]): TreeNode[] => {
   const root: TreeNode[] = [];
 
-  files.forEach((filePath) => {
-    // Handle directory paths (ending with separator)
-    const isDirectory = filePath.endsWith("/");
-    const normalizedPath = isDirectory ? filePath.slice(0, -1) : filePath; // Remove trailing separator for directories
-
-    const parts = normalizedPath.split("/");
+  files.forEach((path) => {
+    const parts = path.split("/");
     let currentLevel = root;
 
     parts.forEach((part, index) => {
@@ -41,7 +37,7 @@ const buildFileTree = (files: string[]): TreeNode[] => {
         const newNode: TreeNode = {
           name: part,
           path: currentPath,
-          isDirectory: isDirectory || !isLastPart,
+          isDirectory: !isLastPart,
           children: [],
         };
 

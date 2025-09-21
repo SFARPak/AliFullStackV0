@@ -151,10 +151,10 @@ export function TokenBar({ chatId }: TokenBarProps) {
             onClick={() =>
               settings?.enableDyadPro
                 ? IpcClient.getInstance().openExternalUrl(
-                    "https://www.alifullstack.com/docs/guides/ai-models/pro-modes#smart-context",
+                    "https://www.dyad.sh/docs/guides/ai-models/pro-modes#smart-context",
                   )
                 : IpcClient.getInstance().openExternalUrl(
-                    "https://alifullstack.com/pro#ai",
+                    "https://dyad.sh/pro#ai",
                   )
             }
             className="text-blue-500 dark:text-blue-400 cursor-pointer hover:underline"

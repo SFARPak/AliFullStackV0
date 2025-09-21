@@ -8,7 +8,6 @@ import git from "isomorphic-git";
 import { safeJoin } from "../utils/path_utils";
 
 import log from "electron-log";
-import { invalidateAppQuery } from "../../hooks/useLoadApp";
 import { executeAddDependency } from "./executeAddDependency";
 import {
   deleteSupabaseFunction,
@@ -168,7 +167,7 @@ export async function processFullResponseActions(
       logger.log(`Executed ${dyadExecuteSqlQueries.length} SQL queries`);
     }
 
-    // Handle add dependency tags
+    // TODO: Handle add dependency tags
     if (dyadAddDependencyPackages.length > 0) {
       try {
         await executeAddDependency({
@@ -176,16 +175,6 @@ export async function processFullResponseActions(
           message: message,
           appPath,
         });
-        // Only mark files as written if installation succeeded
-        writtenFiles.push("package.json");
-        const pnpmFilename = "pnpm-lock.yaml";
-        if (fs.existsSync(safeJoin(appPath, pnpmFilename))) {
-          writtenFiles.push(pnpmFilename);
-        }
-        const packageLockFilename = "package-lock.json";
-        if (fs.existsSync(safeJoin(appPath, packageLockFilename))) {
-          writtenFiles.push(packageLockFilename);
-        }
       } catch (error) {
         errors.push({
           message: `Failed to add dependencies: ${dyadAddDependencyPackages.join(
@@ -193,11 +182,15 @@ export async function processFullResponseActions(
           )}`,
           error: error,
         });
-        // Don't mark package files as written if installation failed
-        warnings.push({
-          message: "Package installation failed - package.json and lock files not committed",
-          error: null,
-        });
+      }
+      writtenFiles.push("package.json");
+      const pnpmFilename = "pnpm-lock.yaml";
+      if (fs.existsSync(safeJoin(appPath, pnpmFilename))) {
+        writtenFiles.push(pnpmFilename);
+      }
+      const packageLockFilename = "package-lock.json";
+      if (fs.existsSync(safeJoin(appPath, packageLockFilename))) {
+        writtenFiles.push(packageLockFilename);
       }
     }
 
@@ -409,8 +402,8 @@ export async function processFullResponseActions(
         changes.push(`executed ${dyadExecuteSqlQueries.length} SQL queries`);
 
       let message = chatSummary
-        ? `[alifullstack] ${chatSummary} - ${changes.join(", ")}`
-        : `[alifullstack] ${changes.join(", ")}`;
+        ? `[dyad] ${chatSummary} - ${changes.join(", ")}`
+        : `[dyad] ${changes.join(", ")}`;
       // Use chat summary, if provided, or default for commit message
       let commitHash = await gitCommit({
         path: appPath,
@@ -420,7 +413,7 @@ export async function processFullResponseActions(
 
       // Check for any uncommitted changes after the commit
       const statusMatrix = await git.statusMatrix({ fs, dir: appPath });
-      uncommittedFiles = (statusMatrix || [])
+      uncommittedFiles = statusMatrix
         .filter((row) => row[1] !== 1 || row[2] !== 1 || row[3] !== 1)
         .map((row) => row[0]); // Get just the file paths
 
@@ -434,7 +427,7 @@ export async function processFullResponseActions(
         try {
           commitHash = await gitCommit({
             path: appPath,
-            message: message + " + extra files edited outside of AliFullStack",
+            message: message + " + extra files edited outside of Dyad",
             amend: true,
           });
           logger.log(
@@ -469,52 +462,34 @@ export async function processFullResponseActions(
       })
       .where(eq(messages.id, messageId));
 
-    // Invalidate app query to refresh file tree in UI
-    if (hasChanges) {
-      // We need to import the necessary components for invalidation
-      // This will refresh the file tree to show updated structure
-      try {
-        // The invalidation will be handled by the React Query client in the renderer process
-        // This ensures the file tree shows both frontend and backend directories
-        logger.log("File changes detected, UI will refresh to show updated file tree");
-      } catch (error) {
-        logger.warn("Could not invalidate app query:", error);
-      }
-    }
-
     return {
       updatedFiles: hasChanges,
-      extraFiles: (uncommittedFiles && uncommittedFiles.length > 0) ? uncommittedFiles : undefined,
+      extraFiles: uncommittedFiles.length > 0 ? uncommittedFiles : undefined,
       extraFilesError,
     };
   } catch (error: unknown) {
     logger.error("Error processing files:", error);
     return { error: (error as any).toString() };
   } finally {
-    // Safely handle warnings and errors arrays (they might not be initialized if exception occurred early)
-    const safeWarnings = warnings || [];
-    const safeErrors = errors || [];
-
     const appendedContent = `
-    ${safeWarnings
+    ${warnings
       .map(
         (warning) =>
           `<dyad-output type="warning" message="${warning.message}">${warning.error}</dyad-output>`,
       )
       .join("\n")}
-    ${safeErrors
+    ${errors
       .map(
         (error) =>
           `<dyad-output type="error" message="${error.message}">${error.error}</dyad-output>`,
       )
       .join("\n")}
     `;
-    if (appendedContent && appendedContent.trim().length > 0) {
-      const safeFullResponse = fullResponse || "";
+    if (appendedContent.length > 0) {
       await db
         .update(messages)
         .set({
-          content: safeFullResponse + "\n\n" + appendedContent,
+          content: fullResponse + "\n\n" + appendedContent,
         })
         .where(eq(messages.id, messageId));
     }

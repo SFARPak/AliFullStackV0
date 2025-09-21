@@ -22,24 +22,12 @@ export function useParseRouter(appId: number | null) {
   } = useLoadApp(appId);
 
   // Load router related file to extract routes for non-Next apps
-  // First try frontend/src/App.tsx (new structure), then fallback to src/App.tsx
-  const {
-    content: frontendRouterContent,
-    loading: frontendRouterFileLoading,
-    error: frontendRouterFileError,
-  } = useLoadAppFile(appId, "frontend/src/App.tsx");
-
   const {
     content: routerContent,
     loading: routerFileLoading,
     error: routerFileError,
     refreshFile,
   } = useLoadAppFile(appId, "src/App.tsx");
-
-  // Use frontend router content if available, otherwise fallback to root
-  const finalRouterContent = frontendRouterContent || routerContent;
-  const finalRouterLoading = frontendRouterFileLoading || routerFileLoading;
-  const finalRouterError = frontendRouterFileError || routerFileError;
 
   // Detect Next.js app by presence of next.config.* in file list
   const isNextApp = useMemo(() => {
@@ -160,18 +148,14 @@ export function useParseRouter(appId: number | null) {
     if (isNextApp && app?.files) {
       setFromNextFiles(app.files);
     } else {
-      setFromRouterFile(finalRouterContent ?? null);
+      setFromRouterFile(routerContent ?? null);
     }
-  }, [isNextApp, app?.files, finalRouterContent]);
+  }, [isNextApp, app?.files, routerContent]);
 
-  const combinedLoading = appLoading || finalRouterLoading;
-  const combinedError = appError || finalRouterError || null;
+  const combinedLoading = appLoading || routerFileLoading;
+  const combinedError = appError || routerFileError || null;
   const refresh = async () => {
     await Promise.allSettled([refreshApp(), refreshFile()]);
-    // Also refresh frontend router file if it exists
-    if (frontendRouterContent) {
-      // Note: We don't have a direct refresh for frontend router, but refetching app will trigger re-evaluation
-    }
   };
 
   return {
