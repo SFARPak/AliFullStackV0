@@ -144,12 +144,12 @@ export function TokenBar({ chatId }: TokenBarProps) {
       </TooltipProvider>
       {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
       {(!settings?.enableProSmartFilesContextMode ||
-        !settings?.enableDyadPro) && (
+        !settings?.enableAliFullStackPro) && (
         <div className="text-xs text-center text-muted-foreground mt-2">
           Optimize your tokens with{" "}
           <a
             onClick={() =>
-              settings?.enableDyadPro
+              settings?.enableAliFullStackPro
                 ? IpcClient.getInstance().openExternalUrl(
                     "https://www.alifullstack.com/docs/guides/ai-models/pro-modes#smart-context",
                   )

@@ -161,7 +161,7 @@ async function handleRooCodeLogin(): Promise<void> {
     // Generate authorization URL
     const params = new URLSearchParams({
       state,
-      auth_redirect: `dyad://roocode-auth`,
+      auth_redirect: `alifullstack://roocode-auth`,
     });
 
     const authUrl = `${ROO_CODE_API_URL}/extension/sign-in?${params.toString()}`;

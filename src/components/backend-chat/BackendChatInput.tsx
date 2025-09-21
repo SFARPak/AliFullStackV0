@@ -248,7 +248,7 @@ export function BackendChatInput({ chatId }: { chatId?: number }) {
         <ChatErrorBox
           onDismiss={dismissError}
           error={error}
-          isDyadProEnabled={settings.enableDyadPro ?? false}
+          isAliFullStackProEnabled={settings.enableAliFullStackPro ?? false}
         />
       )}
       {/* Display loading or error state for proposal */}

@@ -6,11 +6,11 @@ import remarkGfm from "remark-gfm";
 export function ChatErrorBox({
   onDismiss,
   error,
-  isDyadProEnabled,
+  isAliFullStackProEnabled,
 }: {
   onDismiss: () => void;
   error: string;
-  isDyadProEnabled: boolean;
+  isAliFullStackProEnabled: boolean;
 }) {
   if (error.includes("doesn't have a free quota tier")) {
     return (
@@ -63,7 +63,7 @@ export function ChatErrorBox({
       </ChatInfoContainer>
     );
   }
-  if (isDyadProEnabled && error.includes("ExceededBudget:")) {
+  if (isAliFullStackProEnabled && error.includes("ExceededBudget:")) {
     return (
       <ChatInfoContainer onDismiss={onDismiss}>
         <span>

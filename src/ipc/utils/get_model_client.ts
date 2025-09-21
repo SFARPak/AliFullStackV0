@@ -25,8 +25,8 @@ import { createOllamaProvider } from "./ollama_provider";
 import { getOllamaApiUrl } from "../handlers/local_model_ollama_handler";
 import { createFallback } from "./fallback_ai_model";
 
-const dyadEngineUrl = process.env.DYAD_ENGINE_URL;
-const dyadGatewayUrl = process.env.DYAD_GATEWAY_URL;
+const dyadEngineUrl = process.env.ALIFULLSTACK_ENGINE_URL;
+const dyadGatewayUrl = process.env.ALIFULLSTACK_GATEWAY_URL;
 
 const AUTO_MODELS = [
   {
@@ -78,7 +78,7 @@ export async function getModelClient(
   }
 
   // Handle Dyad Pro override
-  if (dyadApiKey && settings.enableDyadPro) {
+  if (dyadApiKey && settings.enableAliFullStackPro) {
     // Check if the selected provider supports Dyad Pro (has a gateway prefix) OR
     // we're using local engine.
     // IMPORTANT: some providers like OpenAI have an empty string gateway prefix,

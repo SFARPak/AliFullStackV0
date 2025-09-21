@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Sparkles, Info } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { IpcClient } from "@/ipc/ipc_client";
-import { hasDyadProKey, type UserSettings } from "@/lib/schemas";
+import { hasAliFullStackProKey, type UserSettings } from "@/lib/schemas";
 
 export function ProModeSelector() {
   const { settings, updateSettings } = useSettings();
@@ -48,12 +48,12 @@ export function ProModeSelector() {
 
   const toggleProEnabled = () => {
     updateSettings({
-      enableDyadPro: !settings?.enableDyadPro,
+      enableAliFullStackPro: !settings?.enableAliFullStackPro,
     });
   };
 
-  const hasProKey = settings ? hasDyadProKey(settings) : false;
-  const proModeTogglable = hasProKey && Boolean(settings?.enableDyadPro);
+  const hasProKey = settings ? hasAliFullStackProKey(settings) : false;
+  const proModeTogglable = hasProKey && Boolean(settings?.enableAliFullStackPro);
 
   return (
     <Popover>
@@ -102,7 +102,7 @@ export function ProModeSelector() {
               description="Use Dyad Pro AI credits"
               tooltip="Uses Dyad Pro AI credits for the main AI model and Pro modes."
               isTogglable={hasProKey}
-              settingEnabled={Boolean(settings?.enableDyadPro)}
+              settingEnabled={Boolean(settings?.enableAliFullStackPro)}
               toggle={toggleProEnabled}
             />
             <SelectorRow

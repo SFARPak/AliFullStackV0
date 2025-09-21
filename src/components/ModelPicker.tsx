@@ -1,4 +1,4 @@
-import { isDyadProEnabled, type LargeLanguageModel } from "@/lib/schemas";
+import { isAliFullStackProEnabled, type LargeLanguageModel } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -111,14 +111,14 @@ export function ModelPicker() {
       ? modelsByProviders["auto"].filter((model) => {
           if (
             settings &&
-            !isDyadProEnabled(settings) &&
+            !isAliFullStackProEnabled(settings) &&
             model.apiName === "turbo"
           ) {
             return false;
           }
           if (
             settings &&
-            isDyadProEnabled(settings) &&
+            isAliFullStackProEnabled(settings) &&
             model.apiName === "free"
           ) {
             return false;
@@ -138,7 +138,7 @@ export function ModelPicker() {
   }
   const selectedModel = settings?.selectedModel;
   const isSmartAutoEnabled =
-    settings.enableProSmartFilesContextMode && isDyadProEnabled(settings);
+    settings.enableProSmartFilesContextMode && isAliFullStackProEnabled(settings);
   const modelDisplayName = getModelDisplayName();
   // Split providers into primary and secondary groups (excluding auto)
   const providerEntries =
@@ -152,7 +152,7 @@ export function ModelPicker() {
     const provider = providers?.find((p) => p.id === providerId);
     return !(provider && provider.secondary);
   });
-  if (settings && isDyadProEnabled(settings)) {
+  if (settings && isAliFullStackProEnabled(settings)) {
     primaryProviders.unshift(["auto", TURBO_MODELS]);
   }
   const secondaryProviders = providerEntries.filter(([providerId, models]) => {
@@ -277,7 +277,7 @@ export function ModelPicker() {
                 // we will use the paid models (in Dyad Pro backend) which
                 // don't have the free limitations.
                 if (
-                  isDyadProEnabled(settings) &&
+                  isAliFullStackProEnabled(settings) &&
                   model.apiName.endsWith(":free")
                 ) {
                   return false;
@@ -297,7 +297,7 @@ export function ModelPicker() {
                         <span>{providerDisplayName}</span>
                         {provider?.type === "cloud" &&
                           !provider?.secondary &&
-                          isDyadProEnabled(settings) && (
+                          isAliFullStackProEnabled(settings) && (
                             <span className="text-[10px] bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 bg-[length:200%_100%] animate-[shimmer_5s_ease-in-out_infinite] text-white px-1.5 py-0.5 rounded-full font-medium">
                               Pro
                             </span>

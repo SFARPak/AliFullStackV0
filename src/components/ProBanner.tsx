@@ -19,7 +19,7 @@ export function ProBanner() {
     return options[Math.floor(Math.random() * options.length)];
   });
 
-  if (settings?.enableDyadPro || userBudget) {
+  if (settings?.enableAliFullStackPro || userBudget) {
     return null;
   }
 

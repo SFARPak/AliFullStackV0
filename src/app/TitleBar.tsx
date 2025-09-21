@@ -73,7 +73,7 @@ export const TitleBar = () => {
   };
 
   const isDyadPro = !!settings?.providerSettings?.auto?.apiKey?.value;
-  const isDyadProEnabled = Boolean(settings?.enableDyadPro);
+  const isAliFullStackProEnabled = Boolean(settings?.enableAliFullStackPro);
 
   return (
     <>
@@ -92,7 +92,7 @@ export const TitleBar = () => {
         >
           {displayText}
         </Button>
-        {isDyadPro && <DyadProButton isDyadProEnabled={isDyadProEnabled} />}
+        {isDyadPro && <DyadProButton isAliFullStackProEnabled={isAliFullStackProEnabled} />}
 
         {/* Preview Header */}
         {location.pathname === "/chat" && (
@@ -194,9 +194,9 @@ function WindowsControls() {
 }
 
 export function DyadProButton({
-  isDyadProEnabled,
+  isAliFullStackProEnabled,
 }: {
-  isDyadProEnabled: boolean;
+  isAliFullStackProEnabled: boolean;
 }) {
   const { navigate } = useRouter();
   const { userBudget } = useUserBudgetInfo();
@@ -212,12 +212,12 @@ export function DyadProButton({
       variant="outline"
       className={cn(
         "hidden @2xl:block ml-1 no-app-region-drag h-7 bg-indigo-600 text-white dark:bg-indigo-600 dark:text-white text-xs px-2 pt-1 pb-1",
-        !isDyadProEnabled && "bg-zinc-600 dark:bg-zinc-600",
+        !isAliFullStackProEnabled && "bg-zinc-600 dark:bg-zinc-600",
       )}
       size="sm"
     >
-      {isDyadProEnabled ? "Pro" : "Pro (off)"}
-      {userBudget && isDyadProEnabled && (
+      {isAliFullStackProEnabled ? "Pro" : "Pro (off)"}
+      {userBudget && isAliFullStackProEnabled && (
         <AICreditStatus userBudget={userBudget} />
       )}
     </Button>
