@@ -27,7 +27,7 @@ export function ReleaseChannelSelector() {
         action: {
           label: "Download Stable",
           onClick: () => {
-            IpcClient.getInstance().openExternalUrl("https://alifullstack.com/download");
+            IpcClient.getInstance().openExternalUrl("https://alifullstack.alitech.io/download");
           },
         },
       });

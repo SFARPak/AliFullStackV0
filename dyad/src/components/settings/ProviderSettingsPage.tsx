@@ -54,7 +54,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
     ? "Dyad"
     : (providerData?.name ?? "Unknown Provider");
   const providerWebsiteUrl = isDyad
-    ? "https://academy.dyad.sh/settings"
+    ? "https://academy.alifullstack.alitech.io/settings"
     : providerData?.websiteUrl;
   const hasFreeTier = isDyad ? false : providerData?.hasFreeTier;
   const envVarName = isDyad ? undefined : providerData?.envVarName;

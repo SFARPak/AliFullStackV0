@@ -46,7 +46,7 @@ export async function refreshSupabaseToken(): Promise<void> {
   try {
     // Make request to Supabase refresh endpoint
     const response = await fetch(
-      "https://supabase-oauth.alifullstack.com/api/connect-supabase/refresh",
+      "https://supabase-oauth.alifullstack.alitech.io/api/connect-supabase/refresh",
       {
         method: "POST",
         headers: {

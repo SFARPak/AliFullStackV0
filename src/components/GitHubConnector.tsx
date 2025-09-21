@@ -204,7 +204,7 @@ function ConnectedGitHubConnector({
               onClick={(e) => {
                 e.preventDefault();
                 IpcClient.getInstance().openExternalUrl(
-                  "https://www.alifullstack.com/docs/integrations/github#troubleshooting",
+                  "https://www.alifullstack.alitech.io/docs/integrations/github#troubleshooting",
                 );
               }}
               className="cursor-pointer text-blue-600 hover:underline dark:text-blue-400"

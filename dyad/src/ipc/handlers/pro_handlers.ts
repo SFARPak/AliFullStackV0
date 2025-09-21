@@ -29,7 +29,7 @@ export function registerProHandlers() {
       return null;
     }
 
-    const url = "https://llm-gateway.dyad.sh/user/info";
+    const url = "https://llm-gateway.alifullstack.alitech.io/user/info";
     const headers = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,

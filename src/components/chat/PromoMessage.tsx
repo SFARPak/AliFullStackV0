@@ -56,7 +56,7 @@ export function Message({ spans }: MessageConfig) {
 export const TURBO_EDITS_PROMO_MESSAGE: MessageConfig = {
   spans: [
     { type: "text", content: "Tired of waiting on AI?" },
-    { type: "link", content: " Get AliFullStack Pro", url: "https://alifullstack.com/pro#ai" },
+    { type: "link", content: " Get AliFullStack Pro", url: "https://alifullstack.alitech.io/pro#ai" },
     { type: "text", content: " for faster edits with Turbo Edits." },
   ],
 };
@@ -67,7 +67,7 @@ export const SMART_CONTEXT_PROMO_MESSAGE: MessageConfig = {
     {
       type: "link",
       content: "AliFullStack Pro's Smart Context",
-      url: "https://alifullstack.com/pro#ai",
+      url: "https://alifullstack.alitech.io/pro#ai",
     },
   ],
 };
@@ -138,12 +138,12 @@ export const DEBUGGING_TIPS_TIP: MessageConfig = {
     {
       type: "link",
       content: "debugging tips",
-      url: "https://www.alifullstack.com/docs/guides/debugging",
+      url: "https://www.alifullstack.alitech.io/docs/guides/debugging",
     },
   ],
 };
 
-// Advanced tip: Customize your AI rules https://www.alifullstack.com/docs/guides/ai-rules
+// Advanced tip: Customize your AI rules https://www.alifullstack.alitech.io/docs/guides/ai-rules
 export const AI_RULES_TIP: MessageConfig = {
   spans: [
     {
@@ -153,7 +153,7 @@ export const AI_RULES_TIP: MessageConfig = {
     {
       type: "link",
       content: "AI rules",
-      url: "https://www.alifullstack.com/docs/guides/ai-rules",
+      url: "https://www.alifullstack.alitech.io/docs/guides/ai-rules",
     },
   ],
 };
@@ -167,7 +167,7 @@ export const NEW_CHAT_TIP: MessageConfig = {
   ],
 };
 
-// Want to know what's next? Checkout our roadmap https://www.alifullstack.com/docs/roadmap
+// Want to know what's next? Checkout our roadmap https://www.alifullstack.alitech.io/docs/roadmap
 export const ROADMAP_TIP: MessageConfig = {
   spans: [
     {
@@ -177,7 +177,7 @@ export const ROADMAP_TIP: MessageConfig = {
     {
       type: "link",
       content: "roadmap",
-      url: "https://www.alifullstack.com/docs/roadmap",
+      url: "https://www.alifullstack.alitech.io/docs/roadmap",
     },
   ],
 };

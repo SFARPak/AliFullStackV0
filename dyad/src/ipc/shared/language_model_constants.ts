@@ -424,7 +424,7 @@ export const CLOUD_PROVIDERS: Record<
   },
   auto: {
     displayName: "Dyad",
-    websiteUrl: "https://academy.dyad.sh/settings",
+    websiteUrl: "https://academy.alifullstack.alitech.io/settings",
     gatewayPrefix: "dyad/",
   },
   azure: {

@@ -42,7 +42,7 @@ export function AiAccessBanner() {
       className="w-full py-2 sm:py-2.5 md:py-3 rounded-lg bg-gradient-to-br from-white via-indigo-50 to-sky-100 dark:from-indigo-700 dark:via-indigo-700 dark:to-indigo-900 flex items-center justify-center relative overflow-hidden ring-1 ring-inset ring-black/5 dark:ring-white/10 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-[1px]"
       onClick={() => {
         IpcClient.getInstance().openExternalUrl(
-          "https://www.alifullstack.com/pro#ai?utm_source=dyad-app&utm_medium=app&utm_campaign=in-app-banner-ai-access",
+          "https://www.alifullstack.alitech.io/pro#ai?utm_source=dyad-app&utm_medium=app&utm_campaign=in-app-banner-ai-access",
         );
       }}
     >
@@ -108,7 +108,7 @@ export function SmartContextBanner() {
       className="w-full py-2 sm:py-2.5 md:py-3 rounded-lg bg-gradient-to-br from-emerald-50 via-emerald-100 to-emerald-200 dark:from-emerald-700 dark:via-emerald-700 dark:to-emerald-900 flex items-center justify-center relative overflow-hidden ring-1 ring-inset ring-emerald-900/10 dark:ring-white/10 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-[1px]"
       onClick={() => {
         IpcClient.getInstance().openExternalUrl(
-          "https://www.alifullstack.com/pro#ai?utm_source=dyad-app&utm_medium=app&utm_campaign=in-app-banner-smart-context",
+          "https://www.alifullstack.alitech.io/pro#ai?utm_source=dyad-app&utm_medium=app&utm_campaign=in-app-banner-smart-context",
         );
       }}
     >
@@ -149,7 +149,7 @@ export function TurboBanner() {
       className="w-full py-2 sm:py-2.5 md:py-3 rounded-lg bg-gradient-to-br from-rose-50 via-rose-100 to-rose-200 dark:from-rose-800 dark:via-fuchsia-800 dark:to-rose-800 flex items-center justify-center relative overflow-hidden ring-1 ring-inset ring-rose-900/10 dark:ring-white/5 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-[1px]"
       onClick={() => {
         IpcClient.getInstance().openExternalUrl(
-          "https://www.alifullstack.com/pro#ai?utm_source=dyad-app&utm_medium=app&utm_campaign=in-app-banner-turbo",
+          "https://www.alifullstack.alitech.io/pro#ai?utm_source=dyad-app&utm_medium=app&utm_campaign=in-app-banner-turbo",
         );
       }}
     >

@@ -151,10 +151,10 @@ export function TokenBar({ chatId }: TokenBarProps) {
             onClick={() =>
               settings?.enableAliFullStackPro
                 ? IpcClient.getInstance().openExternalUrl(
-                    "https://www.alifullstack.com/docs/guides/ai-models/pro-modes#smart-context",
+                    "https://www.alifullstack.alitech.io/docs/guides/ai-models/pro-modes#smart-context",
                   )
                 : IpcClient.getInstance().openExternalUrl(
-                    "https://alifullstack.com/pro#ai",
+                    "https://alifullstack.alitech.io/pro#ai",
                   )
             }
             className="text-blue-500 dark:text-blue-400 cursor-pointer hover:underline"
