@@ -1213,4 +1213,9 @@ export class IpcClient {
   public async startBackendServer(appId: number): Promise<void> {
     return this.ipcRenderer.invoke("start-backend-server", appId);
   }
+
+  // Create missing folder (frontend or backend)
+  public async createMissingFolder(params: { appId: number; folderType: "frontend" | "backend"; templateId?: string; backendFramework?: string }): Promise<void> {
+    return this.ipcRenderer.invoke("create-missing-folder", params);
+  }
 }

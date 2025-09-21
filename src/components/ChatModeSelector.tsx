@@ -37,7 +37,7 @@ export function ChatModeSelector({ appId }: { appId?: number }) {
 
         // If no backend files exist, create the backend folder
         if (backendFiles.length === 0) {
-          await IpcClient.getInstance().invoke("create-missing-folder", {
+          await IpcClient.getInstance().createMissingFolder({
             appId,
             folderType: "backend",
             backendFramework: settings?.selectedBackendFramework,

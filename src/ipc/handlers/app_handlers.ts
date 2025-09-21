@@ -612,7 +612,6 @@ export function registerAppHandlers() {
                 dir: fullAppPath,
                 ref: 'main',
                 force: true,
-                create: true,
               });
             } catch (createError) {
               logger.warn(`Failed to create main branch:`, createError);
@@ -769,7 +768,7 @@ export function registerAppHandlers() {
         // Only create backend folder
         const backendPath = path.join(fullAppPath, "backend");
         if (!fs.existsSync(backendPath)) {
-          await fs.ensureDir(backendPath);
+          await fsPromises.mkdir(backendPath, { recursive: true });
           await setupBackendFramework(backendPath, backendFramework);
 
           // Install dependencies for the backend framework
