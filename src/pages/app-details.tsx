@@ -335,6 +335,22 @@ export default function AppDetailsPage() {
                 console.error("No app id found");
                 return;
               }
+              // Set chat mode to fullstack before navigating
+              await IpcClient.getInstance().setUserSettings({ selectedChatMode: "fullstack" });
+              navigate({ to: "/chat" });
+            }}
+            className="cursor-pointer w-full py-5 flex justify-center items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+            size="lg"
+          >
+            Full Stack Development
+            <Code className="h-4 w-4" />
+          </Button>
+          <Button
+            onClick={async () => {
+              if (!appId) {
+                console.error("No app id found");
+                return;
+              }
               // Set chat mode to frontend (build) before navigating
               await IpcClient.getInstance().setUserSettings({ selectedChatMode: "build" });
               navigate({ to: "/chat" });
