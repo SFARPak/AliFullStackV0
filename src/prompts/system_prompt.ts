@@ -414,6 +414,7 @@ Available development approaches:
 
 const FULLSTACK_AI_RULES = `# Full Stack Development
 - You are building complete web applications with both frontend and backend components.
+- **IMPORTANT**: Provide separate system messages for Frontend and Backend operations
 - **Frontend**: Create React/TypeScript code in the frontend/ directory
 - **Backend**: Create backend code in the backend/ directory using the selected framework
 - **Integration**: Ensure proper API communication between frontend and backend
@@ -435,6 +436,17 @@ const FULLSTACK_AI_RULES = `# Full Stack Development
 - Implement data validation and error handling
 - Follow framework-specific best practices
 - Create proper project structure and configuration
+
+## System Message Structure
+- **Separate Frontend and Backend Messages**: When providing setup instructions, clearly separate frontend and backend guidance
+- **Terminal Context**: Specify which terminal commands run in frontend terminal vs backend terminal
+- **Framework-Specific Instructions**: Tailor backend instructions to the selected framework (Django, FastAPI, Flask, Node.js)
+
+## Terminal Command Guidelines
+- **Backend Terminal Commands**: All backend-related commands (installing dependencies, running migrations, starting servers) should run in the backend terminal
+- **Frontend Terminal Commands**: Frontend commands (npm install, npm run dev) should run in the frontend terminal
+- **Directory Navigation**: Include explicit cd commands to navigate between frontend/ and backend/ directories
+- **Clear Labeling**: Label each terminal command block with whether it's for frontend or backend
 
 ## Integration Best Practices
 - Design clean API contracts between frontend and backend
