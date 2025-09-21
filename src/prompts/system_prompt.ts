@@ -203,6 +203,25 @@ When working with Django applications:
 - **Security**: Implement CSRF protection, authentication, and authorization
 - **Testing**: Write comprehensive unit and integration tests
 
+# Django Terminal Commands
+
+Run these commands in the backend terminal after navigating to the backend directory:
+
+**Initial Setup:**
+- Install dependencies: \`pip install -r requirements.txt\`
+- Run database migrations: \`python manage.py migrate\`
+- Create superuser: \`python manage.py createsuperuser\`
+
+**Development Workflow:**
+- Start development server: \`python manage.py runserver 8000\`
+- Create new migrations: \`python manage.py makemigrations\`
+- Apply migrations: \`python manage.py migrate\`
+- Create new Django app: \`python manage.py startapp <app_name>\`
+
+**Production Preparation:**
+- Collect static files: \`python manage.py collectstatic\`
+- Run tests: \`python manage.py test\`
+
 # Django Best Practices
 
 - Use Django's ORM effectively with select_related and prefetch_related for performance
@@ -244,6 +263,28 @@ When working with FastAPI applications:
 - **Error Handling**: Implement proper HTTP exceptions and error responses
 - **Documentation**: Leverage FastAPI's automatic OpenAPI documentation
 - **Testing**: Write async tests using pytest and httpx
+
+# FastAPI Terminal Commands
+
+Run these commands in the backend terminal after navigating to the backend directory:
+
+**Initial Setup:**
+- Install dependencies: \`pip install -r requirements.txt\`
+- Start development server: \`uvicorn main:app --reload --host 0.0.0.0 --port 8000\`
+
+**Development Workflow:**
+- Run with hot reload: \`uvicorn main:app --reload\`
+- Run on specific port: \`uvicorn main:app --host 0.0.0.0 --port 8000\`
+- Run production server: \`uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4\`
+
+**API Documentation:**
+- View interactive docs: Navigate to \`http://localhost:8000/docs\`
+- View alternative docs: Navigate to \`http://localhost:8000/redoc\`
+
+**Testing:**
+- Run tests: \`pytest\`
+- Run with coverage: \`pytest --cov=.\`
+- Run specific test: \`pytest tests/test_file.py\`
 
 # FastAPI Best Practices
 
@@ -290,6 +331,30 @@ When working with Flask applications:
 - **Extensions**: Leverage Flask extensions for common functionality (SQLAlchemy, Login, etc.)
 - **Configuration**: Manage different configurations for development and production
 
+# Flask Terminal Commands
+
+Run these commands in the backend terminal after navigating to the backend directory:
+
+**Initial Setup:**
+- Install dependencies: \`pip install -r requirements.txt\`
+- Start development server: \`python app.py\`
+- Alternative start: \`flask run --host=0.0.0.0 --port=5000\`
+
+**Database Management (if using Flask-Migrate):**
+- Initialize migrations: \`flask db init\`
+- Create migration: \`flask db migrate -m "migration message"\`
+- Apply migrations: \`flask db upgrade\`
+- Rollback migration: \`flask db downgrade\`
+
+**Development Workflow:**
+- Run with debugger: \`FLASK_ENV=development flask run\`
+- Run on different port: \`flask run --port=8000\`
+- Use Flask CLI: \`export FLASK_APP=app.py && flask run\`
+
+**Testing:**
+- Run tests: \`python -m pytest\`
+- Run with Flask test client: \`python -c "from app import app; app.test_client()"\`
+
 # Flask Best Practices
 
 - Use blueprints to organize routes and functionality
@@ -333,6 +398,35 @@ When working with Node.js applications:
 - **Authentication**: Use JWT or session-based authentication as appropriate
 - **Database**: Choose appropriate database solutions (MongoDB, PostgreSQL, etc.)
 - **Testing**: Write unit and integration tests using Jest or Mocha
+
+# Node.js Terminal Commands
+
+Run these commands in the backend terminal after navigating to the backend directory:
+
+**Initial Setup:**
+- Install dependencies: \`npm install\`
+- Start development server: \`npm run dev\` or \`nodemon server.js\`
+- Start production server: \`npm start\` or \`node server.js\`
+
+**Development Workflow:**
+- Install new package: \`npm install <package-name>\`
+- Install dev dependency: \`npm install --save-dev <package-name>\`
+- Run custom scripts: \`npm run <script-name>\`
+- Check scripts: \`npm run\`
+
+**Database Management (MongoDB example):**
+- Start MongoDB: \`mongod\` (if running locally)
+- Connect to MongoDB: Use MongoDB Compass or CLI tools
+
+**Testing:**
+- Run all tests: \`npm test\`
+- Run tests in watch mode: \`npm run test:watch\`
+- Run specific test: \`npm test -- --testNamePattern="test name"\`
+
+**Build and Deployment:**
+- Build for production: \`npm run build\` (if applicable)
+- Lint code: \`npm run lint\`
+- Format code: \`npm run format\`
 
 # Node.js Best Practices
 
@@ -446,7 +540,43 @@ const FULLSTACK_AI_RULES = `# Full Stack Development
 - **Backend Terminal Commands**: All backend-related commands (installing dependencies, running migrations, starting servers) should run in the backend terminal
 - **Frontend Terminal Commands**: Frontend commands (npm install, npm run dev) should run in the frontend terminal
 - **Directory Navigation**: Include explicit cd commands to navigate between frontend/ and backend/ directories
+- **Framework-Specific Commands**: Use appropriate commands based on the selected backend framework
 - **Clear Labeling**: Label each terminal command block with whether it's for frontend or backend
+
+## Framework-Specific Terminal Commands
+
+### Django Commands (Backend Terminal)
+- Install dependencies: \`pip install -r requirements.txt\`
+- Run migrations: \`python manage.py migrate\`
+- Create migrations: \`python manage.py makemigrations\`
+- Start server: \`python manage.py runserver 8000\`
+- Create superuser: \`python manage.py createsuperuser\`
+- Collect static files: \`python manage.py collectstatic\`
+
+### FastAPI Commands (Backend Terminal)
+- Install dependencies: \`pip install -r requirements.txt\`
+- Start server: \`uvicorn main:app --reload --host 0.0.0.0 --port 8000\`
+- Run with hot reload: \`uvicorn main:app --reload\`
+- Generate client: \`python -c "from main import app; print(app.openapi())"\`
+
+### Flask Commands (Backend Terminal)
+- Install dependencies: \`pip install -r requirements.txt\`
+- Start server: \`python app.py\`
+- Start with Flask CLI: \`flask run --host=0.0.0.0 --port=5000\`
+- Initialize database: \`flask db init\` (if using Flask-Migrate)
+
+### Node.js Commands (Backend Terminal)
+- Install dependencies: \`npm install\`
+- Start server: \`npm start\` or \`node server.js\`
+- Development mode: \`npm run dev\` or \`nodemon server.js\`
+- Build for production: \`npm run build\`
+
+### Frontend Commands (Frontend Terminal)
+- Install dependencies: \`npm install\`
+- Start development server: \`npm run dev\`
+- Build for production: \`npm run build\`
+- Run tests: \`npm test\`
+- Lint code: \`npm run lint\`
 
 ## Integration Best Practices
 - Design clean API contracts between frontend and backend
