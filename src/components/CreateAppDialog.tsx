@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCreateApp } from "@/hooks/useCreateApp";
 import { useCheckName } from "@/hooks/useCheckName";
 import { useSetAtom } from "jotai";
@@ -38,6 +39,9 @@ export function CreateAppDialog({
   const setSelectedAppId = useSetAtom(selectedAppIdAtom);
   const [appName, setAppName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [appType, setAppType] = useState<"frontend" | "backend" | "fullstack">(
+    selectedBackendFramework ? "fullstack" : "frontend"
+  );
   const { createApp } = useCreateApp();
   const { data: nameCheckResult } = useCheckName(appName);
   const router = useRouter();
@@ -57,7 +61,8 @@ export function CreateAppDialog({
       const result = await createApp({
         name: appName.trim(),
         selectedTemplateId: template?.id,
-        selectedBackendFramework
+        selectedBackendFramework,
+        isFullStack: appType === "fullstack"
       });
       if (template && NEON_TEMPLATE_IDS.has(template.id)) {
         await neonTemplateHook({
@@ -102,6 +107,23 @@ export function CreateAppDialog({
 
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>App Type</Label>
+              <RadioGroup value={appType} onValueChange={(value: "frontend" | "backend" | "fullstack") => setAppType(value)}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="frontend" id="frontend" />
+                  <Label htmlFor="frontend">Frontend (React)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="backend" id="backend" />
+                  <Label htmlFor="backend">Backend Only</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="fullstack" id="fullstack" />
+                  <Label htmlFor="fullstack">Full Stack (Frontend + Backend)</Label>
+                </div>
+              </RadioGroup>
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="appName">App Name</Label>
               <Input
