@@ -9,10 +9,10 @@ import { normalizePath } from "../../../shared/normalizePath";
 const EXCLUDED_DIRS = ["node_modules", ".git", ".next"];
 
 /**
- * Recursively gets all files in a directory, excluding node_modules and .git
+ * Recursively gets all files and directories in a directory, excluding node_modules and .git
  * @param dir The directory to scan
  * @param baseDir The base directory for calculating relative paths
- * @returns Array of file paths relative to the base directory
+ * @returns Array of file and directory paths relative to the base directory
  */
 export function getFilesRecursively(dir: string, baseDir: string): string[] {
   if (!fs.existsSync(dir)) {
@@ -25,9 +25,11 @@ export function getFilesRecursively(dir: string, baseDir: string): string[] {
   for (const dirent of dirents) {
     const res = path.join(dir, dirent.name);
     if (dirent.isDirectory()) {
-      // For directories, concat the results of recursive call
+      // For directories, add the directory path first, then concat the results of recursive call
       // Exclude specified directories
       if (!EXCLUDED_DIRS.includes(dirent.name)) {
+        // Add the directory itself to the list (this ensures empty directories show up)
+        files.push(path.relative(baseDir, res) + path.sep);
         files.push(...getFilesRecursively(res, baseDir));
       }
     } else {

@@ -22,6 +22,7 @@ export interface ListAppsResponse {
 export interface ChatStreamParams {
   chatId: number;
   prompt: string;
+  chatMode?: "build" | "ask" | "backend";
   redo?: boolean;
   attachments?: Array<{
     name: string;
@@ -47,6 +48,15 @@ export interface ChatProblemsEvent {
 
 export interface CreateAppParams {
   name: string;
+  selectedTemplateId?: string;
+  selectedBackendFramework?: string | null;
+}
+
+export interface CreateMissingFolderParams {
+  appId: number;
+  folderType: "frontend" | "backend";
+  templateId?: string;
+  backendFramework?: string;
 }
 
 export interface CreateAppResult {

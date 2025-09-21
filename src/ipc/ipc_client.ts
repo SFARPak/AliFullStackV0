@@ -351,6 +351,7 @@ export class IpcClient {
     options: {
       selectedComponent: ComponentSelection | null;
       chatId: number;
+      chatMode?: "build" | "ask" | "backend";
       redo?: boolean;
       attachments?: FileAttachment[];
       onUpdate: (messages: Message[]) => void;
@@ -361,6 +362,7 @@ export class IpcClient {
   ): void {
     const {
       chatId,
+      chatMode,
       redo,
       attachments,
       selectedComponent,
@@ -402,6 +404,7 @@ export class IpcClient {
             .invoke("chat:stream", {
               prompt,
               chatId,
+              chatMode,
               redo,
               selectedComponent,
               attachments: fileDataArray,
@@ -423,6 +426,7 @@ export class IpcClient {
         .invoke("chat:stream", {
           prompt,
           chatId,
+          chatMode,
           redo,
           selectedComponent,
         })

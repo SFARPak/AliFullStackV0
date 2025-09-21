@@ -2,12 +2,16 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { chatMessagesAtom, chatStreamCountAtom } from "../atoms/chatAtoms";
 import { IpcClient } from "@/ipc/ipc_client";
+import { useSettings } from "@/hooks/useSettings";
 
 import { ChatHeader } from "./chat/ChatHeader";
 import { MessagesList } from "./chat/MessagesList";
 import { ChatInput } from "./chat/ChatInput";
 import { VersionPane } from "./chat/VersionPane";
 import { ChatError } from "./chat/ChatError";
+
+// Backend components
+import { BackendChatPanel as BackendChatPanelComponent } from "./backend-chat/BackendChatPanel";
 
 interface ChatPanelProps {
   chatId?: number;
@@ -20,6 +24,9 @@ export function ChatPanel({
   isPreviewOpen,
   onTogglePreview,
 }: ChatPanelProps) {
+  const { settings } = useSettings();
+  const isBackendMode = settings?.selectedChatMode === "backend";
+
   const [messages, setMessages] = useAtom(chatMessagesAtom);
   const [isVersionPaneOpen, setIsVersionPaneOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +121,18 @@ export function ChatPanel({
     }
   }, [messages, isUserScrolling]);
 
+  // If in backend mode, render backend components
+  if (isBackendMode) {
+    return (
+      <BackendChatPanelComponent
+        chatId={chatId}
+        isPreviewOpen={isPreviewOpen}
+        onTogglePreview={onTogglePreview}
+      />
+    );
+  }
+
+  // Default frontend mode
   return (
     <div className="flex flex-col h-full">
       <ChatHeader

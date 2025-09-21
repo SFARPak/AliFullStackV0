@@ -125,7 +125,7 @@ export function AppUpgrades({ appId }: { appId: number | null }) {
                         onClick={(e) => {
                           e.stopPropagation();
                           IpcClient.getInstance().openExternalUrl(
-                            upgrade.manualUpgradeUrl ?? "https://dyad.sh/docs",
+                            upgrade.manualUpgradeUrl ?? "https://alifullstack.com/docs",
                           );
                         }}
                         className="underline font-medium hover:dark:text-red-200"

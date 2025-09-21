@@ -26,12 +26,14 @@ interface CreateAppDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   template: Template | undefined;
+  selectedBackendFramework?: string | null;
 }
 
 export function CreateAppDialog({
   open,
   onOpenChange,
   template,
+  selectedBackendFramework,
 }: CreateAppDialogProps) {
   const setSelectedAppId = useSetAtom(selectedAppIdAtom);
   const [appName, setAppName] = useState("");
@@ -52,7 +54,11 @@ export function CreateAppDialog({
 
     setIsSubmitting(true);
     try {
-      const result = await createApp({ name: appName.trim() });
+      const result = await createApp({
+        name: appName.trim(),
+        selectedTemplateId: template?.id,
+        selectedBackendFramework
+      });
       if (template && NEON_TEMPLATE_IDS.has(template.id)) {
         await neonTemplateHook({
           appId: result.app.id,

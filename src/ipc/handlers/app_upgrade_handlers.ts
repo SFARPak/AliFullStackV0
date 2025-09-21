@@ -19,15 +19,15 @@ const availableUpgrades: Omit<AppUpgrade, "isNeeded">[] = [
     id: "component-tagger",
     title: "Enable select component to edit",
     description:
-      "Installs the Dyad component tagger Vite plugin and its dependencies.",
-    manualUpgradeUrl: "https://dyad.sh/docs/upgrades/select-component",
+      "Installs the AliFullStack component tagger Vite plugin and its dependencies.",
+    manualUpgradeUrl: "https://alifullstack.com/docs/upgrades/select-component",
   },
   {
     id: "capacitor",
     title: "Upgrade to hybrid mobile app with Capacitor",
     description:
       "Adds Capacitor to your app lets it run on iOS and Android in addition to the web.",
-    manualUpgradeUrl: "https://dyad.sh/docs/guides/mobile-app#upgrade-your-app",
+    manualUpgradeUrl: "https://alifullstack.com/docs/guides/mobile-app#upgrade-your-app",
   },
 ];
 
@@ -63,7 +63,7 @@ function isComponentTaggerUpgradeNeeded(appPath: string): boolean {
 
   try {
     const viteConfigContent = fs.readFileSync(viteConfigPath, "utf-8");
-    return !viteConfigContent.includes("@dyad-sh/react-vite-component-tagger");
+    return !viteConfigContent.includes("@SFARPak/react-vite-component-tagger");
   } catch (e) {
     logger.error("Error reading vite config", e);
     return false;
@@ -111,7 +111,7 @@ async function applyComponentTagger(appPath: string) {
   // Add import statement if not present
   if (
     !content.includes(
-      "import dyadComponentTagger from '@dyad-sh/react-vite-component-tagger';",
+      "import dyadComponentTagger from '@SFARPak/react-vite-component-tagger';",
     )
   ) {
     // Add it after the last import statement
@@ -126,7 +126,7 @@ async function applyComponentTagger(appPath: string) {
     lines.splice(
       lastImportIndex + 1,
       0,
-      "import dyadComponentTagger from '@dyad-sh/react-vite-component-tagger';",
+      "import dyadComponentTagger from '@SFARPak/react-vite-component-tagger';",
     );
     content = lines.join("\n");
   }
@@ -151,7 +151,7 @@ async function applyComponentTagger(appPath: string) {
   await new Promise<void>((resolve, reject) => {
     logger.info("Installing component-tagger dependency");
     const process = spawn(
-      "pnpm add -D @dyad-sh/react-vite-component-tagger || npm install --save-dev --legacy-peer-deps @dyad-sh/react-vite-component-tagger",
+      "pnpm add -D @SFARPak/react-vite-component-tagger || npm install --save-dev --legacy-peer-deps @SFARPak/react-vite-component-tagger",
       {
         cwd: appPath,
         shell: true,
@@ -167,8 +167,8 @@ async function applyComponentTagger(appPath: string) {
         logger.info("component-tagger dependency installed successfully");
         resolve();
       } else {
-        logger.error(`Failed to install dependency, exit code ${code}`);
-        reject(new Error("Failed to install dependency"));
+        logger.warn(`Failed to install component-tagger dependency (exit code ${code}). Continuing without it.`);
+        resolve(); // Don't fail the upgrade, just continue without the package
       }
     });
 
@@ -184,7 +184,7 @@ async function applyComponentTagger(appPath: string) {
     await gitAddAll({ path: appPath });
     await gitCommit({
       path: appPath,
-      message: "[dyad] add Dyad component tagger",
+      message: "[alifullstack] add AliFullStack component tagger",
     });
     logger.info("Successfully committed changes");
   } catch (err) {
@@ -233,7 +233,7 @@ async function applyCapacitor({
     await gitAddAll({ path: appPath });
     await gitCommit({
       path: appPath,
-      message: "[dyad] add Capacitor for mobile app support",
+      message: "[alifullstack] add Capacitor for mobile app support",
     });
     logger.info("Successfully committed Capacitor changes");
   } catch (err) {

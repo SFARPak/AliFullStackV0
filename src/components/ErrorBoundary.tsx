@@ -59,7 +59,7 @@ ${debugInfo.logs.slice(-3_500) || "No logs available"}
       const encodedTitle = encodeURIComponent(
         "[bug] Error in Dyad application",
       );
-      const githubIssueUrl = `https://github.com/dyad-sh/dyad/issues/new?title=${encodedTitle}&labels=bug,filed-from-app,client-error&body=${encodedBody}`;
+      const githubIssueUrl = `https://github.com/SFARPak/dyad/issues/new?title=${encodedTitle}&labels=bug,filed-from-app,client-error&body=${encodedBody}`;
 
       // Open the pre-filled GitHub issue page
       await IpcClient.getInstance().openExternalUrl(githubIssueUrl);
@@ -67,7 +67,7 @@ ${debugInfo.logs.slice(-3_500) || "No logs available"}
       console.error("Failed to prepare bug report:", err);
       // Fallback to opening the regular GitHub issue page
       IpcClient.getInstance().openExternalUrl(
-        "https://github.com/dyad-sh/dyad/issues/new",
+        "https://github.com/SFARPak/dyad/issues/new",
       );
     } finally {
       setIsLoading(false);

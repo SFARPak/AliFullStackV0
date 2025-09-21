@@ -17,7 +17,7 @@ export function ChatErrorBox({
       <ChatErrorContainer onDismiss={onDismiss}>
         {error}
         <span className="ml-1">
-          <ExternalLink href="https://dyad.sh/pro">
+          <ExternalLink href="https://alifullstack.com/pro">
             Access with Dyad Pro
           </ExternalLink>
         </span>{" "}
@@ -36,13 +36,13 @@ export function ChatErrorBox({
       <ChatErrorContainer onDismiss={onDismiss}>
         {error}
         <span className="ml-1">
-          <ExternalLink href="https://dyad.sh/pro">
+          <ExternalLink href="https://alifullstack.com/pro">
             Upgrade to Dyad Pro
           </ExternalLink>
         </span>{" "}
         or read the
         <span className="ml-1">
-          <ExternalLink href="https://dyad.sh/docs/help/ai-rate-limit">
+          <ExternalLink href="https://alifullstack.com/docs/help/ai-rate-limit">
             Rate limit troubleshooting guide.
           </ExternalLink>
         </span>
@@ -55,7 +55,7 @@ export function ChatErrorBox({
       <ChatInfoContainer onDismiss={onDismiss}>
         <span>
           Looks like you don't have a valid Dyad Pro key.{" "}
-          <ExternalLink href="https://dyad.sh/pro">
+          <ExternalLink href="https://alifullstack.com/pro">
             Upgrade to Dyad Pro
           </ExternalLink>{" "}
           today.
@@ -68,7 +68,7 @@ export function ChatErrorBox({
       <ChatInfoContainer onDismiss={onDismiss}>
         <span>
           You have used all of your Dyad AI credits this month.{" "}
-          <ExternalLink href="https://academy.dyad.sh/subscription">
+          <ExternalLink href="https://academy.alifullstack.com/subscription">
             Upgrade to Dyad Max
           </ExternalLink>{" "}
           and get more AI credits

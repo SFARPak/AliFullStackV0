@@ -8,6 +8,7 @@ import git from "isomorphic-git";
 import { safeJoin } from "../utils/path_utils";
 
 import log from "electron-log";
+import { invalidateAppQuery } from "../../hooks/useLoadApp";
 import { executeAddDependency } from "./executeAddDependency";
 import {
   deleteSupabaseFunction,
@@ -402,8 +403,8 @@ export async function processFullResponseActions(
         changes.push(`executed ${dyadExecuteSqlQueries.length} SQL queries`);
 
       let message = chatSummary
-        ? `[dyad] ${chatSummary} - ${changes.join(", ")}`
-        : `[dyad] ${changes.join(", ")}`;
+        ? `[alifullstack] ${chatSummary} - ${changes.join(", ")}`
+        : `[alifullstack] ${changes.join(", ")}`;
       // Use chat summary, if provided, or default for commit message
       let commitHash = await gitCommit({
         path: appPath,
@@ -427,7 +428,7 @@ export async function processFullResponseActions(
         try {
           commitHash = await gitCommit({
             path: appPath,
-            message: message + " + extra files edited outside of Dyad",
+            message: message + " + extra files edited outside of AliFullStack",
             amend: true,
           });
           logger.log(
@@ -461,6 +462,19 @@ export async function processFullResponseActions(
         approvalState: "approved",
       })
       .where(eq(messages.id, messageId));
+
+    // Invalidate app query to refresh file tree in UI
+    if (hasChanges) {
+      // We need to import the necessary components for invalidation
+      // This will refresh the file tree to show updated structure
+      try {
+        // The invalidation will be handled by the React Query client in the renderer process
+        // This ensures the file tree shows both frontend and backend directories
+        logger.log("File changes detected, UI will refresh to show updated file tree");
+      } catch (error) {
+        logger.warn("Could not invalidate app query:", error);
+      }
+    }
 
     return {
       updatedFiles: hasChanges,

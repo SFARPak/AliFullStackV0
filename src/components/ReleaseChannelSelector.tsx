@@ -27,7 +27,7 @@ export function ReleaseChannelSelector() {
         action: {
           label: "Download Stable",
           onClick: () => {
-            IpcClient.getInstance().openExternalUrl("https://dyad.sh/download");
+            IpcClient.getInstance().openExternalUrl("https://alifullstack.com/download");
           },
         },
       });
