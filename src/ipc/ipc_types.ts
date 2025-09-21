@@ -50,6 +50,7 @@ export interface CreateAppParams {
   name: string;
   selectedTemplateId?: string;
   selectedBackendFramework?: string | null;
+  isFullStack?: boolean;
 }
 
 export interface CreateMissingFolderParams {
