@@ -442,6 +442,17 @@ const FULLSTACK_AI_RULES = `# Full Stack Development
 - Implement loading states and error boundaries
 - Use consistent data formats (JSON) for communication
 
+## System Message Structure
+- **Separate Frontend and Backend Messages**: When providing setup instructions, clearly separate frontend and backend guidance
+- **Terminal Context**: Specify which terminal commands run in frontend terminal vs backend terminal
+- **Framework-Specific Instructions**: Tailor backend instructions to the selected framework (Django, FastAPI, Flask, Node.js)
+
+## Terminal Command Guidelines
+- **Backend Terminal Commands**: All backend-related commands (installing dependencies, running migrations, starting servers) should run in the backend terminal
+- **Frontend Terminal Commands**: Frontend commands (npm install, npm run dev) should run in the frontend terminal
+- **Directory Navigation**: Include explicit cd commands to navigate between frontend/ and backend/ directories
+- **Clear Labeling**: Label each terminal command block with whether it's for frontend or backend
+
 Available technologies:
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS, shadcn/ui
 - **Backend**: Django (Python), FastAPI (Python), Flask (Python), Node.js + Express
