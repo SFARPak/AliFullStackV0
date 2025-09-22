@@ -10,6 +10,7 @@ import { DyadAddIntegration } from "./DyadAddIntegration";
 import { DyadEdit } from "./DyadEdit";
 import { DyadCodebaseContext } from "./DyadCodebaseContext";
 import { DyadThink } from "./DyadThink";
+import { DyadRunTerminalCmd } from "./DyadRunTerminalCmd";
 import { CodeHighlight } from "./CodeHighlight";
 import { useAtomValue } from "jotai";
 import { isStreamingAtom } from "@/atoms/chatAtoms";
@@ -124,6 +125,7 @@ function preprocessUnclosedTags(content: string): {
     "dyad-codebase-context",
     "think",
     "dyad-command",
+    "run_terminal_cmd",
   ];
 
   let processedContent = content;
@@ -191,6 +193,7 @@ function parseCustomTags(content: string): ContentPiece[] {
     "dyad-codebase-context",
     "think",
     "dyad-command",
+    "run_terminal_cmd",
   ];
 
   const tagPattern = new RegExp(
@@ -423,6 +426,21 @@ function renderCustomTag(
     case "dyad-command":
       // Don't render anything for dyad-command
       return null;
+
+    case "run_terminal_cmd":
+      return (
+        <DyadRunTerminalCmd
+          node={{
+            properties: {
+              description: attributes.description || "",
+              cwd: attributes.cwd || "",
+              state: getState({ isStreaming, inProgress }),
+            },
+          }}
+        >
+          {content}
+        </DyadRunTerminalCmd>
+      );
 
     default:
       return null;

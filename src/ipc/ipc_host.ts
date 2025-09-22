@@ -1,3 +1,4 @@
+import { ipcMain } from "electron";
 import { registerAppHandlers } from "./handlers/app_handlers";
 import { registerChatHandlers } from "./handlers/chat_handlers";
 import { registerChatStreamHandlers } from "./handlers/chat_stream_handlers";
@@ -30,7 +31,8 @@ import { registerTemplateHandlers } from "./handlers/template_handlers";
 import { registerPortalHandlers } from "./handlers/portal_handlers";
 import { registerPromptHandlers } from "./handlers/prompt_handlers";
 import { registerHelpBotHandlers } from "./handlers/help_bot_handlers";
-import { registerTerminalHandlers } from "./handlers/terminal_handlers";
+import { registerTerminalHandlers, addTerminalOutput } from "./handlers/terminal_handlers";
+import { AppOutput } from "./ipc_types";
 
 export function registerIpcHandlers() {
   // Register all IPC handlers by category
