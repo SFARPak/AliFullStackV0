@@ -28,6 +28,7 @@ import {
   getDyadExecuteSqlTags,
   getDyadRunBackendTerminalCmdTags,
   getDyadRunFrontendTerminalCmdTags,
+  getDyadRunTerminalCmdTags,
 } from "../utils/dyad_tag_parser";
 import { runShellCommand } from "../utils/runShellCommand";
 import { storeDbTimestampAtCurrentVersion } from "../utils/neon_timestamp_utils";
@@ -125,6 +126,7 @@ export async function processFullResponseActions(
       : [];
     const dyadRunBackendTerminalCmdTags = getDyadRunBackendTerminalCmdTags(fullResponse);
     const dyadRunFrontendTerminalCmdTags = getDyadRunFrontendTerminalCmdTags(fullResponse);
+    const dyadRunTerminalCmdTags = getDyadRunTerminalCmdTags(fullResponse);
 
     const message = await db.query.messages.findFirst({
       where: and(
@@ -261,6 +263,47 @@ export async function processFullResponseActions(
       }
       logger.log(`Executed ${dyadRunFrontendTerminalCmdTags.length} frontend terminal commands`);
      }
+
+     // Handle general terminal command tags
+     if (dyadRunTerminalCmdTags.length > 0) {
+       for (const cmdTag of dyadRunTerminalCmdTags) {
+         try {
+           const cwd = cmdTag.cwd ? path.join(appPath, cmdTag.cwd) : appPath;
+
+           logger.log(`Executing general terminal command: ${cmdTag.command} in ${cwd}`);
+
+           const result = await runShellCommand(`cd "${cwd}" && ${cmdTag.command}`);
+
+           if (result === null) {
+             errors.push({
+               message: `Terminal command failed: ${cmdTag.description || cmdTag.command}`,
+               error: `Command execution failed in ${cwd}`,
+             });
+             // Add error to backend terminal
+             addTerminalOutput(chatWithApp.app.id, "backend", `❌ Error: ${cmdTag.description || cmdTag.command}`, "error");
+           } else {
+             logger.log(`Terminal command succeeded: ${cmdTag.description || cmdTag.command}`);
+
+             // Add command and result to backend terminal
+             addTerminalOutput(chatWithApp.app.id, "backend", `$ ${cmdTag.command}`, "command");
+
+             if (result.trim()) {
+               addTerminalOutput(chatWithApp.app.id, "backend", result, "output");
+             }
+
+             addTerminalOutput(chatWithApp.app.id, "backend", `✅ ${cmdTag.description || cmdTag.command} completed successfully`, "success");
+           }
+         } catch (error) {
+           errors.push({
+             message: `Terminal command failed: ${cmdTag.description || cmdTag.command}`,
+             error: error,
+           });
+           // Add error to backend terminal
+           addTerminalOutput(chatWithApp.app.id, "backend", `❌ Error: ${error}`, "error");
+         }
+       }
+       logger.log(`Executed ${dyadRunTerminalCmdTags.length} general terminal commands`);
+      }
 
     // Handle add dependency tags
     if (dyadAddDependencyPackages.length > 0) {

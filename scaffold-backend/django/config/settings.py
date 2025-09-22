@@ -3,7 +3,8 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'CHANGE_THIS_SECRET_KEY_IN_PRODUCTION')
+from django.core.management.utils import get_random_secret_key
+SECRET_KEY = os.environ.get('SECRET_KEY', get_random_secret_key())
 
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 

@@ -604,6 +604,11 @@ export class IpcClient {
     await this.ipcRenderer.invoke("delete-app", { appId });
   }
 
+  // Delete all apps and all their files
+  public async deleteAllApps(): Promise<void> {
+    await this.ipcRenderer.invoke("delete-all-apps");
+  }
+
   // Rename an app (update name and path)
   public async renameApp({
     appId,

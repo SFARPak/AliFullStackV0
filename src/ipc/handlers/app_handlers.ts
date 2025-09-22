@@ -1396,6 +1396,54 @@ export function registerAppHandlers() {
     },
   );
 
+  ipcMain.handle("delete-all-apps", async (): Promise<void> => {
+    logger.log("start: deleting all apps and their files.");
+    // Stop all running apps first
+    logger.log("stopping all running apps...");
+    const runningAppIds = Array.from(runningApps.keys());
+    for (const appId of runningAppIds) {
+      try {
+        const appInfo = runningApps.get(appId)!;
+        await stopAppByInfo(appId, appInfo);
+      } catch (error) {
+        logger.error(`Error stopping app ${appId} during delete all:`, error);
+        // Continue with deletion even if stopping fails
+      }
+    }
+    logger.log("all running apps stopped.");
+
+    // Get all apps
+    const allApps = await db.query.apps.findMany();
+
+    // Delete all apps from database
+    logger.log("deleting all apps from database...");
+    try {
+      await db.delete(apps);
+      // Note: Associated chats will cascade delete
+    } catch (error: any) {
+      logger.error("Error deleting all apps from database:", error);
+      throw new Error(`Failed to delete apps from database: ${error.message}`);
+    }
+    logger.log("all apps deleted from database.");
+
+    // Delete all app files
+    logger.log("deleting all app files...");
+    for (const app of allApps) {
+      const appPath = getDyadAppPath(app.path);
+      if (fs.existsSync(appPath)) {
+        try {
+          await fsPromises.rm(appPath, { recursive: true, force: true });
+          logger.log(`Deleted app files for ${app.name} at ${appPath}`);
+        } catch (error: any) {
+          logger.warn(`Error deleting app files for ${app.name}:`, error);
+          // Continue with other apps even if one fails
+        }
+      }
+    }
+    logger.log("all app files deleted.");
+    logger.log("delete all apps complete.");
+  });
+
   ipcMain.handle(
     "rename-app",
     async (

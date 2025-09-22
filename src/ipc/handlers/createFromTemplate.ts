@@ -1172,21 +1172,47 @@ export async function setupBackendFramework(backendPath: string, framework: stri
   logger.info(`Setting up ${framework} framework in ${backendPath}`);
 
   try {
-    switch (framework) {
-      case 'django':
-        await setupDjango(backendPath);
-        break;
-      case 'fastapi':
-        await setupFastAPI(backendPath);
-        break;
-      case 'flask':
-        await setupFlask(backendPath);
-        break;
-      case 'nodejs':
-        await setupNodeJS(backendPath);
-        break;
-      default:
-        logger.warn(`Unknown backend framework: ${framework}`);
+    // Check if scaffold-backend exists for this framework
+    const scaffoldPath = path.join("/Volumes/Farhan/Desktop/AliFullstack", "scaffold-backend", framework);
+
+    if (fs.existsSync(scaffoldPath)) {
+      logger.info(`Found scaffold for ${framework} at ${scaffoldPath}, copying to ${backendPath}`);
+
+      // Copy the scaffold-backend directory to backendPath
+      await fs.copy(scaffoldPath, backendPath, {
+        overwrite: true,
+        filter: (src, dest) => {
+          // Exclude .DS_Store and other unwanted files
+          const relativePath = path.relative(scaffoldPath, src);
+          const shouldExclude = relativePath === '.DS_Store' || relativePath.includes('.git');
+          if (shouldExclude) {
+            logger.debug(`Excluding ${src} from copy`);
+          }
+          return !shouldExclude;
+        }
+      });
+
+      logger.info(`Successfully copied ${framework} scaffold from ${scaffoldPath} to ${backendPath}`);
+    } else {
+      logger.warn(`Scaffold not found for ${framework} at ${scaffoldPath}, falling back to programmatic setup`);
+
+      // Fallback to programmatic setup if scaffold doesn't exist
+      switch (framework) {
+        case 'django':
+          await setupDjango(backendPath);
+          break;
+        case 'fastapi':
+          await setupFastAPI(backendPath);
+          break;
+        case 'flask':
+          await setupFlask(backendPath);
+          break;
+        case 'nodejs':
+          await setupNodeJS(backendPath);
+          break;
+        default:
+          logger.warn(`Unknown backend framework: ${framework}`);
+      }
     }
 
     // Install dependencies after setting up the framework
