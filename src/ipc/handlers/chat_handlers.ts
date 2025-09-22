@@ -1,6 +1,6 @@
 import { ipcMain } from "electron";
 import { db } from "../../db";
-import { startBackendServer } from "./createFromTemplate";
+import { startBackendServer, startFrontendServer } from "./createFromTemplate";
 import { apps, chats, messages } from "../../db/schema";
 import { desc, eq, and, like } from "drizzle-orm";
 import type { ChatSearchResult, ChatSummary } from "../../lib/schemas";

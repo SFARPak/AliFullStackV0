@@ -132,6 +132,17 @@ export async function processFullResponseActions(
     const dyadRunFrontendTerminalCmdTags = getDyadRunFrontendTerminalCmdTags(fullResponse);
     const dyadRunTerminalCmdTags = getDyadRunTerminalCmdTags(fullResponse);
 
+    // Determine the chat mode to route general terminal commands appropriately
+    let chatMode = settings.selectedChatMode;
+    if (chatWithApp.app) {
+      // Check if there's a backend directory to determine if this is backend/fullstack mode
+      const backendPath = path.join(appPath, "backend");
+      const hasBackend = fs.existsSync(backendPath);
+      if (hasBackend) {
+        chatMode = settings.selectedChatMode === "fullstack" ? "fullstack" : "backend";
+      }
+    }
+
     const message = await db.query.messages.findFirst({
       where: and(
         eq(messages.id, messageId),
@@ -268,41 +279,84 @@ export async function processFullResponseActions(
       logger.log(`Executed ${dyadRunFrontendTerminalCmdTags.length} frontend terminal commands`);
      }
 
-     // Handle general terminal command tags
+     // Handle general terminal command tags - route based on chat mode
      if (dyadRunTerminalCmdTags.length > 0) {
        for (const cmdTag of dyadRunTerminalCmdTags) {
+         // Clean up the command - remove any "cmd:" prefix that AI might add
+         let cleanCommand = cmdTag.command.trim();
+         if (cleanCommand.startsWith("cmd:")) {
+           cleanCommand = cleanCommand.substring(4).trim();
+         }
+         if (cleanCommand.startsWith("command:")) {
+           cleanCommand = cleanCommand.substring(8).trim();
+         }
+
          try {
-           const cwd = cmdTag.cwd ? path.join(appPath, cmdTag.cwd) : appPath;
 
-           logger.log(`Executing general terminal command: ${cmdTag.command} in ${cwd}`);
+           // Determine which terminal to route to based on chat mode
+           let terminalType: "frontend" | "backend" = "backend"; // default
+           let cwd = cmdTag.cwd ? path.join(appPath, cmdTag.cwd) : appPath;
 
-           const result = await runShellCommand(`cd "${cwd}" && ${cmdTag.command}`);
+           if (chatMode === "ask") {
+             // For ask mode, route to frontend terminal (most common for general commands)
+             terminalType = "frontend";
+             if (!cmdTag.cwd) {
+               cwd = path.join(appPath, "frontend");
+             }
+           } else if (chatMode === "backend") {
+             terminalType = "backend";
+             // For backend mode, adjust cwd to backend directory if not already specified
+             if (!cmdTag.cwd) {
+               cwd = path.join(appPath, "backend");
+             }
+           } else if (chatMode === "fullstack") {
+             // For fullstack mode, try to determine based on command content or default to backend
+             // Commands related to frontend development go to frontend terminal
+             const frontendCommands = ["npm", "yarn", "pnpm", "vite", "next", "react", "webpack"];
+             const isFrontendCommand = frontendCommands.some(cmd => cleanCommand.toLowerCase().includes(cmd));
+
+             if (isFrontendCommand) {
+               terminalType = "frontend";
+               if (!cmdTag.cwd) {
+                 cwd = path.join(appPath, "frontend");
+               }
+             } else {
+               terminalType = "backend";
+               if (!cmdTag.cwd) {
+                 cwd = path.join(appPath, "backend");
+               }
+             }
+           }
+
+           logger.log(`Executing general terminal command: ${cleanCommand} in ${cwd} (routing to ${terminalType} terminal)`);
+
+           const result = await runShellCommand(`cd "${cwd}" && ${cleanCommand}`);
 
            if (result === null) {
              errors.push({
-               message: `Terminal command failed: ${cmdTag.description || cmdTag.command}`,
+               message: `Terminal command failed: ${cmdTag.description || cleanCommand}`,
                error: `Command execution failed in ${cwd}`,
              });
-             // Add error to backend terminal
-             addTerminalOutput(chatWithApp.app.id, "backend", `❌ Error: ${cmdTag.description || cmdTag.command}`, "error");
+             // Add error to appropriate terminal
+             addTerminalOutput(chatWithApp.app.id, terminalType, `❌ Error: ${cmdTag.description || cleanCommand}`, "error");
            } else {
-             logger.log(`Terminal command succeeded: ${cmdTag.description || cmdTag.command}`);
+             logger.log(`Terminal command succeeded: ${cmdTag.description || cleanCommand}`);
 
-             // Add command and result to backend terminal
-             addTerminalOutput(chatWithApp.app.id, "backend", `$ ${cmdTag.command}`, "command");
+             // Add command and result to appropriate terminal
+             addTerminalOutput(chatWithApp.app.id, terminalType, `$ ${cleanCommand}`, "command");
 
              if (result.trim()) {
-               addTerminalOutput(chatWithApp.app.id, "backend", result, "output");
+               addTerminalOutput(chatWithApp.app.id, terminalType, result, "output");
              }
 
-             addTerminalOutput(chatWithApp.app.id, "backend", `✅ ${cmdTag.description || cmdTag.command} completed successfully`, "success");
+             addTerminalOutput(chatWithApp.app.id, terminalType, `✅ ${cmdTag.description || cleanCommand} completed successfully`, "success");
            }
          } catch (error) {
            errors.push({
-             message: `Terminal command failed: ${cmdTag.description || cmdTag.command}`,
+             message: `Terminal command failed: ${cmdTag.description || cleanCommand}`,
              error: error,
            });
-           // Add error to backend terminal
+           // Add error to appropriate terminal (default to backend for errors)
            addTerminalOutput(chatWithApp.app.id, "backend", `❌ Error: ${error}`, "error");
          }
        }

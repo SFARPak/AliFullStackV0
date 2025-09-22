@@ -100,12 +100,26 @@ export function BackendChatInput({ chatId }: { chatId?: number }) {
     handlePaste,
   } = useAttachments();
 
-  // Auto-start servers when entering backend or fullstack mode
+  // Initialize terminals and auto-start servers when entering backend or fullstack mode
   useEffect(() => {
-    const startServers = async () => {
+    const initializeTerminalsAndStartServers = async () => {
       if (!appId) return;
 
       try {
+        // Import terminal output functions
+        const { addTerminalOutput } = await import("../../ipc/handlers/terminal_handlers");
+
+        // Initialize backend terminal with welcome message
+        addTerminalOutput(appId, "backend", `🚀 Backend Development Environment Ready`, "output");
+        addTerminalOutput(appId, "backend", `Type commands or ask me to run backend operations...`, "output");
+
+        // For fullstack mode, also initialize frontend terminal
+        if (settings?.selectedChatMode === "fullstack") {
+          addTerminalOutput(appId, "frontend", `🚀 Frontend Development Environment Ready`, "output");
+          addTerminalOutput(appId, "frontend", `Type commands or ask me to run frontend operations...`, "output");
+        }
+
+        // Start servers after initializing terminals
         // Always start backend server for backend/fullstack modes
         logger.info(`Auto-starting backend server for app: ${appId}`);
         await IpcClient.getInstance().startBackendServer(appId);
@@ -118,12 +132,12 @@ export function BackendChatInput({ chatId }: { chatId?: number }) {
           logger.info("Frontend server started successfully");
         }
       } catch (error) {
-        logger.error("Failed to auto-start servers:", error);
+        logger.error("Failed to initialize terminals or auto-start servers:", error);
       }
     };
 
     // Small delay to ensure component is fully mounted
-    const timeoutId = setTimeout(startServers, 1000);
+    const timeoutId = setTimeout(initializeTerminalsAndStartServers, 500);
     return () => clearTimeout(timeoutId);
   }, [appId, settings?.selectedChatMode]);
 
