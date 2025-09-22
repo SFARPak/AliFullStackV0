@@ -4,6 +4,12 @@
 - Follow Node.js best practices and Express.js patterns.
 - Always put source code in appropriate modules and directories.
 
+## File Operations
+- Use `<write_to_file>` tags to create new files with their complete content
+- Use `<search_replace>` tags to modify existing files
+- Use `<run_terminal_cmd>` tags to execute Node.js development commands
+- Always provide complete file content, not partial updates
+
 ## Project Structure
 - `server.js`: Main Express application entry point
 - `package.json`: Node.js dependencies and scripts

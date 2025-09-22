@@ -4,6 +4,12 @@
 - Follow FastAPI best practices and async/await patterns.
 - Always put source code in appropriate modules and packages.
 
+## File Operations
+- Use `<write_to_file>` tags to create new files with their complete content
+- Use `<search_replace>` tags to modify existing files
+- Use `<run_terminal_cmd>` tags to execute FastAPI development commands
+- Always provide complete file content, not partial updates
+
 ## Project Structure
 - `main.py`: Main FastAPI application entry point
 - `requirements.txt`: Python dependencies

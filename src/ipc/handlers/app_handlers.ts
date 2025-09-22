@@ -53,6 +53,7 @@ import { getVercelTeamSlug } from "../utils/vercel_utils";
 import { storeDbTimestampAtCurrentVersion } from "../utils/neon_timestamp_utils";
 import { AppSearchResult } from "@/lib/schemas";
 import { CreateMissingFolderParams } from "../ipc_types";
+import { developmentOrchestrator } from "../utils/development_orchestrator";
 
 const DEFAULT_COMMAND =
   "(node -e \"try { const pkg = require('./package.json'); if (pkg.dependencies && pkg.dependencies['@SFARPak/react-vite-component-tagger']) { delete pkg.dependencies['@SFARPak/react-vite-component-tagger']; require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2)); } if (pkg.devDependencies && pkg.devDependencies['@SFARPak/react-vite-component-tagger']) { delete pkg.devDependencies['@SFARPak/react-vite-component-tagger']; require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2)); } } catch(e) {}; try { const fs = require('fs'); if (fs.existsSync('./vite.config.ts')) { let config = fs.readFileSync('./vite.config.ts', 'utf8'); config = config.replace(/import.*@SFARPak\\/react-vite-component-tagger.*;\\s*/g, ''); config = config.replace(/dyadComponentTagger[^}]*},?\\s*/g, ''); config = config.replace(/applyComponentTagger[^}]*},?\\s*/g, ''); fs.writeFileSync('./vite.config.ts', config); } } catch(e) {}\" && pnpm install && pnpm run dev --port 32100) || (node -e \"try { const pkg = require('./package.json'); if (pkg.dependencies && pkg.dependencies['@SFARPak/react-vite-component-tagger']) { delete pkg.dependencies['@SFARPak/react-vite-component-tagger']; require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2)); } if (pkg.devDependencies && pkg.devDependencies['@SFARPak/react-vite-component-tagger']) { delete pkg.devDependencies['@SFARPak/react-vite-component-tagger']; require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2)); } } catch(e) {}; try { const fs = require('fs'); if (fs.existsSync('./vite.config.ts')) { let config = fs.readFileSync('./vite.config.ts', 'utf8'); config = config.replace(/import.*@SFARPak\\/react-vite-component-tagger.*;\\s*/g, ''); config = config.replace(/dyadComponentTagger[^}]*},?\\s*/g, ''); config = config.replace(/applyComponentTagger[^}]*},?\\s*/g, ''); fs.writeFileSync('./vite.config.ts', config); } } catch(e) {}\" && npm install --legacy-peer-deps && npm run dev -- --port 32100)";
@@ -664,6 +665,23 @@ export function registerAppHandlers() {
         logger.error(`Failed to initialize Git repository:`, gitError);
         // Don't fail app creation for Git errors - Git is optional
         logger.warn(`App ${app.id} created without Git repository`);
+      }
+
+      // Start autonomous development process
+      try {
+        logger.info(`Starting autonomous development for app ${app.id}`);
+        const requirements: string[] = []; // Requirements will be gathered during development
+        developmentOrchestrator.startAutonomousDevelopment(
+          app.id,
+          "react", // default frontend framework
+          params.selectedBackendFramework || undefined,
+          requirements
+        );
+        logger.info(`Autonomous development started for app ${app.id}`);
+      } catch (devError) {
+        logger.error(`Failed to start autonomous development for app ${app.id}:`, devError);
+        // Don't fail app creation if autonomous development fails to start
+        logger.warn(`App ${app.id} created but autonomous development failed to start`);
       }
 
       return { app, chatId: chat.id };

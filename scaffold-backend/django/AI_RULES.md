@@ -4,6 +4,12 @@
 - Follow Django best practices and conventions.
 - Always put source code in the appropriate Django app folders.
 
+## File Operations
+- Use `<write_to_file>` tags to create new files with their complete content
+- Use `<search_replace>` tags to modify existing files
+- Use `<run_terminal_cmd>` tags to execute Django management commands (migrations, startapp, etc.)
+- Always provide complete file content, not partial updates
+
 ## Project Structure
 - `config/`: Main Django project directory containing settings
 - `apps/`: Django applications directory

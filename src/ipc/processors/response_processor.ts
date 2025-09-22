@@ -29,6 +29,8 @@ import {
   getDyadRunBackendTerminalCmdTags,
   getDyadRunFrontendTerminalCmdTags,
   getDyadRunTerminalCmdTags,
+  getWriteToFileTags,
+  getSearchReplaceTags,
 } from "../utils/dyad_tag_parser";
 import { runShellCommand } from "../utils/runShellCommand";
 import { storeDbTimestampAtCurrentVersion } from "../utils/neon_timestamp_utils";
@@ -118,6 +120,8 @@ export async function processFullResponseActions(
   try {
     // Extract all tags
     const dyadWriteTags = getDyadWriteTags(fullResponse);
+    const writeToFileTags = getWriteToFileTags(fullResponse);
+    const searchReplaceTags = getSearchReplaceTags(fullResponse);
     const dyadRenameTags = getDyadRenameTags(fullResponse);
     const dyadDeletePaths = getDyadDeleteTags(fullResponse);
     const dyadAddDependencyPackages = getDyadAddDependencyTags(fullResponse);
@@ -456,8 +460,104 @@ export async function processFullResponseActions(
       }
     }
 
-    // Process all file writes
+    // Process all file writes (dyad-write tags)
     for (const tag of dyadWriteTags) {
+      const filePath = tag.path;
+      let content: string | Buffer = tag.content;
+      const fullFilePath = safeJoin(appPath, filePath);
+
+      // Check if this is a search_replace operation
+      if (typeof content === "string" && content.startsWith("SEARCH_REPLACE:")) {
+        // Handle search_replace operation
+        const parts = content.split(":");
+        if (parts.length >= 3) {
+          const oldString = parts[1];
+          const newString = parts.slice(2).join(":");
+
+          if (fs.existsSync(fullFilePath)) {
+            try {
+              let fileContent = fs.readFileSync(fullFilePath, 'utf8');
+
+              if (fileContent.includes(oldString)) {
+                fileContent = fileContent.replace(oldString, newString);
+                fs.writeFileSync(fullFilePath, fileContent);
+                logger.log(`Successfully applied search_replace to file: ${fullFilePath}`);
+                writtenFiles.push(filePath);
+              } else {
+                logger.warn(`Old string not found in file for search_replace: ${fullFilePath}`);
+                warnings.push({
+                  message: `Search string not found in file: ${filePath}`,
+                  error: null,
+                });
+              }
+            } catch (error) {
+              logger.error(`Failed to apply search_replace to file: ${fullFilePath}`, error);
+              errors.push({
+                message: `Failed to apply search_replace to file: ${filePath}`,
+                error: error,
+              });
+            }
+          } else {
+            logger.warn(`File not found for search_replace: ${fullFilePath}`);
+            warnings.push({
+              message: `File not found for search_replace: ${filePath}`,
+              error: null,
+            });
+          }
+        }
+      } else {
+        // Handle regular file write
+        // Check if content (stripped of whitespace) exactly matches a file ID and replace with actual file content
+        if (fileUploadsMap) {
+          const trimmedContent = tag.content.trim();
+          const fileInfo = fileUploadsMap.get(trimmedContent);
+          if (fileInfo) {
+            try {
+              const fileContent = await readFile(fileInfo.filePath);
+              content = fileContent;
+              logger.log(
+                `Replaced file ID ${trimmedContent} with content from ${fileInfo.originalName}`,
+              );
+            } catch (error) {
+              logger.error(
+                `Failed to read uploaded file ${fileInfo.originalName}:`,
+                error,
+              );
+              errors.push({
+                message: `Failed to read uploaded file: ${fileInfo.originalName}`,
+                error: error,
+              });
+            }
+          }
+        }
+
+        // Ensure directory exists
+        const dirPath = path.dirname(fullFilePath);
+        fs.mkdirSync(dirPath, { recursive: true });
+
+        // Write file content
+        fs.writeFileSync(fullFilePath, content);
+        logger.log(`Successfully wrote file: ${fullFilePath}`);
+        writtenFiles.push(filePath);
+        if (isServerFunction(filePath) && typeof content === "string") {
+          try {
+            await deploySupabaseFunctions({
+              supabaseProjectId: chatWithApp.app.supabaseProjectId!,
+              functionName: path.basename(path.dirname(filePath)),
+              content: content,
+            });
+          } catch (error) {
+            errors.push({
+              message: `Failed to deploy Supabase function: ${filePath}`,
+              error: error,
+            });
+          }
+        }
+      }
+    }
+
+    // Process write_to_file tags
+    for (const tag of writeToFileTags) {
       const filePath = tag.path;
       let content: string | Buffer = tag.content;
       const fullFilePath = safeJoin(appPath, filePath);
@@ -492,7 +592,7 @@ export async function processFullResponseActions(
 
       // Write file content
       fs.writeFileSync(fullFilePath, content);
-      logger.log(`Successfully wrote file: ${fullFilePath}`);
+      logger.log(`Successfully wrote file via write_to_file tag: ${fullFilePath}`);
       writtenFiles.push(filePath);
       if (isServerFunction(filePath) && typeof content === "string") {
         try {
@@ -510,12 +610,55 @@ export async function processFullResponseActions(
       }
     }
 
+    // Process search_replace tags
+    for (const tag of searchReplaceTags) {
+      const filePath = tag.file;
+      const fullFilePath = safeJoin(appPath, filePath);
+
+      if (fs.existsSync(fullFilePath)) {
+        try {
+          let fileContent = fs.readFileSync(fullFilePath, 'utf8');
+
+          // Replace old_string with new_string
+          const oldString = tag.old_string.replace(/"/g, '"').replace(/</g, '<').replace(/>/g, '>').replace(/&/g, '&');
+          const newString = tag.new_string.replace(/"/g, '"').replace(/</g, '<').replace(/>/g, '>').replace(/&/g, '&');
+
+          if (fileContent.includes(oldString)) {
+            fileContent = fileContent.replace(oldString, newString);
+            fs.writeFileSync(fullFilePath, fileContent);
+            logger.log(`Successfully applied search_replace to file: ${fullFilePath}`);
+            writtenFiles.push(filePath);
+          } else {
+            logger.warn(`Old string not found in file for search_replace: ${fullFilePath}`);
+            warnings.push({
+              message: `Search string not found in file: ${filePath}`,
+              error: null,
+            });
+          }
+        } catch (error) {
+          logger.error(`Failed to apply search_replace to file: ${fullFilePath}`, error);
+          errors.push({
+            message: `Failed to apply search_replace to file: ${filePath}`,
+            error: error,
+          });
+        }
+      } else {
+        logger.warn(`File not found for search_replace: ${fullFilePath}`);
+        warnings.push({
+          message: `File not found for search_replace: ${filePath}`,
+          error: null,
+        });
+      }
+    }
+
     // If we have any file changes, commit them all at once
     hasChanges =
       writtenFiles.length > 0 ||
       renamedFiles.length > 0 ||
       deletedFiles.length > 0 ||
-      dyadAddDependencyPackages.length > 0;
+      dyadAddDependencyPackages.length > 0 ||
+      writeToFileTags.length > 0 ||
+      searchReplaceTags.length > 0;
 
     let uncommittedFiles: string[] = [];
     let extraFilesError: string | undefined;
@@ -545,13 +688,13 @@ export async function processFullResponseActions(
       if (dyadExecuteSqlQueries.length > 0)
         changes.push(`executed ${dyadExecuteSqlQueries.length} SQL queries`);
 
-      let message = chatSummary
+      const commitMessage = chatSummary
         ? `[alifullstack] ${chatSummary} - ${changes.join(", ")}`
         : `[alifullstack] ${changes.join(", ")}`;
       // Use chat summary, if provided, or default for commit message
       let commitHash = await gitCommit({
         path: appPath,
-        message,
+        message: commitMessage,
       });
       logger.log(`Successfully committed changes: ${changes.join(", ")}`);
 
@@ -571,7 +714,7 @@ export async function processFullResponseActions(
         try {
           commitHash = await gitCommit({
             path: appPath,
-            message: message + " + extra files edited outside of AliFullStack",
+            message: commitMessage + " + extra files edited outside of AliFullStack",
             amend: true,
           });
           logger.log(

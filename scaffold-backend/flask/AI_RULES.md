@@ -4,6 +4,12 @@
 - Follow Flask best practices and patterns.
 - Always put source code in appropriate modules and packages.
 
+## File Operations
+- Use `<write_to_file>` tags to create new files with their complete content
+- Use `<search_replace>` tags to modify existing files
+- Use `<run_terminal_cmd>` tags to execute Flask development commands
+- Always provide complete file content, not partial updates
+
 ## Project Structure
 - `run.py`: Main Flask application entry point
 - `requirements.txt`: Python dependencies

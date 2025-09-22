@@ -24,6 +24,7 @@ export function getDyadWriteTags(fullResponse: string): {
     const descriptionMatch = descriptionRegex.exec(attributesString);
 
     if (pathMatch && pathMatch[1]) {
+      // Direct dyad-write tag with path attribute
       const path = pathMatch[1];
       const description = descriptionMatch?.[1];
 
@@ -38,10 +39,32 @@ export function getDyadWriteTags(fullResponse: string): {
 
       tags.push({ path: normalizePath(path), content, description });
     } else {
-      logger.warn(
-        "Found <dyad-write> tag without a valid 'path' attribute:",
-        match[0],
-      );
+      // Check if content contains nested write_to_file or search_replace tags
+      const writeToFileTags = getWriteToFileTags(content);
+      const searchReplaceTags = getSearchReplaceTags(content);
+
+      // Add nested write_to_file tags
+      for (const tag of writeToFileTags) {
+        tags.push({ path: tag.path, content: tag.content, description: undefined });
+      }
+
+      // Add nested search_replace tags (convert to write operations)
+      for (const tag of searchReplaceTags) {
+        // For search_replace in dyad-write context, we need to read the file and apply the changes
+        // But since this is parsing, we'll mark it for later processing
+        tags.push({
+          path: tag.file,
+          content: `SEARCH_REPLACE:${tag.old_string}:${tag.new_string}`,
+          description: undefined
+        });
+      }
+
+      if (writeToFileTags.length === 0 && searchReplaceTags.length === 0) {
+        logger.warn(
+          "Found <dyad-write> tag without a valid 'path' attribute and no nested tags:",
+          match[0],
+        );
+      }
     }
   }
   return tags;
@@ -223,4 +246,66 @@ export function getDyadRunTerminalCmdTags(fullResponse: string): {
   }
 
   return commands;
+}
+
+export function getWriteToFileTags(fullResponse: string): {
+  path: string;
+  content: string;
+}[] {
+  const writeToFileRegex = /<write_to_file path="([^"]+)">([\s\S]*?)<\/write_to_file>/g;
+
+  let match;
+  const tags: { path: string; content: string }[] = [];
+
+  while ((match = writeToFileRegex.exec(fullResponse)) !== null) {
+    const path = match[1];
+    let content = match[2];
+
+    // Remove leading/trailing whitespace and markdown code blocks
+    content = content.trim();
+    const contentLines = content.split("\n");
+    if (contentLines[0]?.startsWith("```")) {
+      contentLines.shift();
+    }
+    if (contentLines[contentLines.length - 1]?.startsWith("```")) {
+      contentLines.pop();
+    }
+    content = contentLines.join("\n");
+
+    tags.push({ path: normalizePath(path), content });
+  }
+
+  return tags;
+}
+
+export function getSearchReplaceTags(fullResponse: string): {
+  file: string;
+  old_string: string;
+  new_string: string;
+}[] {
+  // Match the search_replace format: <search_replace file="..." old_string="...">content</search_replace>
+  const searchReplaceRegex = /<search_replace\s+file="([^"]+)"\s+old_string="([^"]*)">([\s\S]*?)<\/search_replace>/g;
+
+  let match;
+  const tags: { file: string; old_string: string; new_string: string }[] = [];
+
+  while ((match = searchReplaceRegex.exec(fullResponse)) !== null) {
+    const file = match[1];
+    const old_string = match[2];
+    let new_string = match[3].trim();
+
+    // Remove leading/trailing whitespace and markdown code blocks
+    const contentLines = new_string.split("\n");
+    if (contentLines[0]?.startsWith("```")) {
+      contentLines.shift();
+    }
+    if (contentLines[contentLines.length - 1]?.startsWith("```")) {
+      contentLines.pop();
+    }
+    new_string = contentLines.join("\n");
+
+    tags.push({ file: normalizePath(file), old_string, new_string });
+  }
+
+  return tags;
 }
