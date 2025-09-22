@@ -701,7 +701,7 @@ function BackendRestartButton() {
     if (!selectedAppId) return;
 
     posthog.capture("backend:action:restart");
-    await restartApp();
+    await restartApp({}, { terminalType: "backend" });
   }, [selectedAppId, posthog, restartApp]);
 
   return (

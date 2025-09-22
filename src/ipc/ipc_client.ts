@@ -80,7 +80,7 @@ export interface ChatStreamCallbacks {
 }
 
 export interface AppStreamCallbacks {
-  onOutput: (output: AppOutput) => void;
+  onOutput: (output: AppOutput, terminalType?: "frontend" | "backend" | "main") => void;
 }
 
 export interface GitHubDeviceFlowUpdateData {
@@ -151,7 +151,7 @@ export class IpcClient {
       }
     });
 
-    this.ipcRenderer.on("app:output", (data) => {
+    this.ipcRenderer.on("app:output", async (data) => {
       if (
         data &&
         typeof data === "object" &&
@@ -159,10 +159,22 @@ export class IpcClient {
         "message" in data &&
         "appId" in data
       ) {
-        const { type, message, appId } = data as unknown as AppOutput;
-        const callbacks = this.appStreams.get(appId);
-        if (callbacks) {
-          callbacks.onOutput({ type, message, appId, timestamp: Date.now() });
+        const { type, message, appId, terminalType } = data as unknown as AppOutput & { terminalType?: "frontend" | "backend" | "main" };
+
+        // Route based on terminalType if provided
+        if (terminalType && terminalType !== "main") {
+          try {
+            const { addTerminalOutput } = await import("./handlers/terminal_handlers");
+            addTerminalOutput(appId, terminalType, message, type as "command" | "output" | "success" | "error");
+          } catch (error) {
+            showError(new Error(`[IPC] Failed to route terminal output: ${error}`));
+          }
+        } else {
+          // Default routing for main/system messages
+          const callbacks = this.appStreams.get(appId);
+          if (callbacks) {
+            callbacks.onOutput({ type, message, appId, timestamp: Date.now() }, terminalType);
+          }
         }
       } else {
         showError(new Error(`[IPC] Invalid app output data received: ${data}`));
@@ -478,9 +490,10 @@ export class IpcClient {
   // Run an app
   public async runApp(
     appId: number,
-    onOutput: (output: AppOutput) => void,
+    onOutput: (output: AppOutput, terminalType?: "frontend" | "backend" | "main") => void,
+    terminalType: "frontend" | "backend" | "main" = "main",
   ): Promise<void> {
-    await this.ipcRenderer.invoke("run-app", { appId });
+    await this.ipcRenderer.invoke("run-app", { appId, terminalType });
     this.appStreams.set(appId, { onOutput });
   }
 
@@ -492,13 +505,15 @@ export class IpcClient {
   // Restart a running app
   public async restartApp(
     appId: number,
-    onOutput: (output: AppOutput) => void,
+    onOutput: (output: AppOutput, terminalType?: "frontend" | "backend" | "main") => void,
     removeNodeModules?: boolean,
+    terminalType: "frontend" | "backend" | "main" = "main",
   ): Promise<{ success: boolean }> {
     try {
       const result = await this.ipcRenderer.invoke("restart-app", {
         appId,
         removeNodeModules,
+        terminalType,
       });
       this.appStreams.set(appId, { onOutput });
       return result;

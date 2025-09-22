@@ -139,9 +139,12 @@ export function useRunApp() {
   }, [setPreviewPanelKey]);
 
   const restartApp = useCallback(
-    async ({
-      removeNodeModules = false,
-    }: { removeNodeModules?: boolean } = {}) => {
+    async (
+      params: { removeNodeModules?: boolean } = {},
+      options: { terminalType?: "frontend" | "backend" | "main" } = {}
+    ) => {
+      const { removeNodeModules = false } = params;
+      const { terminalType = "main" } = options;
       if (appId === null) {
         return;
       }

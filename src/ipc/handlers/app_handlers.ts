@@ -92,6 +92,7 @@ async function executeApp({
   isNeon,
   installCommand,
   startCommand,
+  terminalType,
 }: {
   appPath: string;
   appId: number;
@@ -99,6 +100,7 @@ async function executeApp({
   isNeon: boolean;
   installCommand?: string | null;
   startCommand?: string | null;
+  terminalType?: "frontend" | "backend" | "main";
 }): Promise<void> {
   if (proxyWorker) {
     proxyWorker.terminate();
@@ -208,11 +210,13 @@ function listenToProcess({
   appId,
   isNeon,
   event,
+  terminalType,
 }: {
   process: ChildProcess;
   appId: number;
   isNeon: boolean;
   event: Electron.IpcMainInvokeEvent;
+  terminalType?: "frontend" | "backend" | "main";
 }) {
   // Log output
   spawnedProcess.stdout?.on("data", async (data) => {
@@ -1056,7 +1060,7 @@ export function registerAppHandlers() {
     "run-app",
     async (
       event: Electron.IpcMainInvokeEvent,
-      { appId }: { appId: number },
+      { appId, terminalType }: { appId: number; terminalType?: "frontend" | "backend" | "main" },
     ): Promise<void> => {
       return withLock(appId, async () => {
         // Check if app is already running
@@ -1079,14 +1083,15 @@ export function registerAppHandlers() {
         try {
           // There may have been a previous run that left a process on port 32100.
           await cleanUpPort(32100);
-          await executeApp({
-            appPath,
-            appId,
-            event,
-            isNeon: !!app.neonProjectId,
-            installCommand: app.installCommand,
-            startCommand: app.startCommand,
-          });
+    await executeApp({
+      appPath,
+      appId,
+      event,
+      isNeon: !!app.neonProjectId,
+      installCommand: app.installCommand,
+      startCommand: app.startCommand,
+      terminalType,
+    });
 
           return;
         } catch (error: any) {
@@ -1161,7 +1166,8 @@ export function registerAppHandlers() {
       {
         appId,
         removeNodeModules,
-      }: { appId: number; removeNodeModules?: boolean },
+        terminalType,
+      }: { appId: number; removeNodeModules?: boolean; terminalType?: "frontend" | "backend" | "main" },
     ): Promise<void> => {
       logger.log(`Restarting app ${appId}`);
       return withLock(appId, async () => {

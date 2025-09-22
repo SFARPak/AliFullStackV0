@@ -1,23 +1,33 @@
-# 🧠 AliFullStack — AI-Powered Full-Stack App Builder
+# 🧠 AliFullStack — AI-Powered Full-Stack App Builder (Local-First, Open Source)
 
-**AliFullStack** is a local-first, AI-driven full-stack app builder that empowers you to build, test, and deploy applications with speed, privacy, and full control. Inspired by tools like Lovable, v0, and Bolt, AliFullStack runs entirely in your browser or on your machine — no vendor lock-in, no data leakage.
+**AliFullStack** is a blazing-fast, **AI-driven Full-Stack App Builder** that runs entirely **locally** — giving you total **data privacy**, **vendor freedom**, and powerful **LLM integration**. Whether you're a solo indie hacker, startup, or enterprise developer, AliFullStack helps you **build, test, and deploy apps autonomously** using your favorite frontend and backend frameworks.
 
-Built on top of [Dyad](https://www.alifullstack.alitech.io), it brings together the power of modern AI models with the flexibility of your favorite frontend and backend frameworks.
+> ✅ 100% Local | 🚀 LLM-Powered | 🧠 BYO AI API Key | 🧩 Framework-Agnostic | 💡 Open Source
 
-[![AliFullStack Screenshot](https://github.com/user-attachments/assets/f6c83dfc-6ffd-4d32-93dd-4b9c46d17790)](http://alifullstack.alitech.io)
+Inspired by tools like *Lovable*, *v0.dev*, and *Bolt*, but with no lock-in or cloud dependency. Built on top of [Dyad](https://github.com/dyad-sh/dyad), AliFullStack gives you the power of AI without sacrificing control.
 
-🔗 **Learn more**: [alifullstack.alitech.io](http://alifullstack.alitech.io)
+![AliFullStack Screenshot](https://github.com/user-attachments/assets/f6c83dfc-6ffd-4d32-93dd-4b9c46d17790)
+
+🌐 **Live Demo & Docs**: [alifullstack.alitech.io](https://alifullstack.alitech.io)
+
+---
+
+## ⭐ Why Star This Project?
+
+Help us grow! If you're excited about AI developer tools, autonomous coding, or local-first privacy-first software:
+
+👉 **[Give us a ⭐ on GitHub](https://github.com/your-repo-link-here)** — it really helps!
 
 ---
 
 ## 🚀 Key Features
 
-- ⚡ **Local & Private** — Everything runs locally. No data ever leaves your machine unless you choose.
-- 🔑 **Bring Your Own API Keys** — Use your preferred AI providers (OpenAI, Claude, Gemini, etc.).
-- 🖥️ **Cross-Platform** — Works seamlessly on macOS, Windows, and Linux.
-- 🧱 **Framework-Agnostic** — Build with React, Next.js, Django, FastAPI, and more.
-- 🛠 **Autonomous AI Code Generation** — Let AI handle scaffolding, APIs, UI, and even tests.
-- 🧠 **Model Flexibility** — Plug into a wide range of LLM providers via API.
+- 🔐 **Local & Private by Default** — No servers, no tracking, no data leakage.
+- 🧠 **LLM-Powered Autonomy** — AI generates frontend, backend, tests, and more.
+- 🧰 **Bring Your Own API Keys** — Works with OpenAI, Claude, Gemini, etc.
+- 🧱 **Framework Agnostic** — React, Next.js, Django, FastAPI, and more.
+- 💻 **Cross-Platform** — Windows, macOS, Linux supported.
+- 🔄 **Self-Upgrading Pipelines** — Code improves itself over time.
 
 ---
 
@@ -83,34 +93,60 @@ AliFullStack is evolving rapidly. Here's what’s done and what’s coming soon:
 
 ---
 
-## 📦 Get Started
+## 📦 Get Started in 2 Minutes
 
-No sign-up. No cloud lock-in. Just download and start building.
+No sign-up. No cloud lock-in. Just download and build.
 
-👉 **[Download for your platform](https://www.alifullstack.alitech.io/#download)**
-
----
-
-## 🌍 Community
-
-Join the growing community of indie hackers, developers, and AI tinkerers:
-
-🔗 **[r/alifullstackbuilders](https://www.reddit.com/r/alifullstackbuilders/)** — Share your builds, get support, and contribute ideas.
+👉 **[Download AliFullStack](https://www.alifullstack.alitech.io/#download)** for your OS and start building.
 
 ---
 
-## 🤝 Contributing
+## 👥 Join the Community
 
-AliFullStack is open-source and licensed under **Apache 2.0**.
+Be part of a growing network of **AI tinkerers**, **indie hackers**, and **full-stack dreamers**:
 
-We welcome contributions! Whether it's fixing bugs, adding features, or writing docs — you're welcome here. Please check out our [CONTRIBUTING.md](./CONTRIBUTING.md) to get started.
-
----
-
-## 📬 Stay in the Loop
-
-Get product updates, feature drops, and community highlights:
-
-- 🌐 Website: [alifullstack.alitech.io](https://alifullstack.alitech.io)
+- 🧵 Reddit: [r/alifullstackbuilders](https://www.reddit.com/r/alifullstackbuilders/)
 - 🐦 Twitter/X: [@alifullstack](https://twitter.com/alifullstack) *(coming soon)*
-- 📢 Reddit: [r/alifullstackbuilders](http)
+- 🌐 Website: [alifullstack.alitech.io](https://alifullstack.alitech.io)
+
+---
+
+## 🤝 Contribute to AliFullStack
+
+AliFullStack is **Apache 2.0 licensed** and open to contributors!
+
+You can:
+- 🐛 Fix bugs
+- ✨ Add features
+- 📝 Improve documentation
+- 📣 Share it in dev communities!
+
+📄 **[CONTRIBUTING.md](./CONTRIBUTING.md)** has all the details.
+
+---
+
+## 📬 Stay Updated
+
+Be the first to know about:
+- ✨ New Features
+- 📦 Releases
+- 🧠 Devlogs
+- 🚀 Launches
+
+📧 Subscribe via the [website](https://alifullstack.alitech.io) or follow us on [Reddit](https://www.reddit.com/r/alifullstackbuilders/).
+
+---
+
+## 🔗 Useful Links
+
+- 💻 [Live Demo / Docs]- Coming Soon
+- 📥 [Download] - Coming Soon
+- 🧑‍💻 [Contribute](./CONTRIBUTING.md)
+- ⭐ [Star on GitHub](https://github.com/SFARPak/AliFullStack)
+- 🧵 [Reddit Community](https://www.reddit.com/r/alifullstackbuilders/)
+
+---
+
+## 💬 Let’s Build the Future of Devtools — Together.
+
+> Local-first. AI-powered. Fully yours.
