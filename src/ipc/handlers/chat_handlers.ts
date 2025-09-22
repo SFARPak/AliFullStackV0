@@ -215,9 +215,40 @@ export function registerChatHandlers() {
 
     if (framework) {
       logger.info(`Starting backend server for framework: ${framework}`);
-      await startBackendServer(backendPath, framework);
+      await startBackendServer(backendPath, framework, appId);
     } else {
       logger.warn("No recognized backend framework found");
     }
+  });
+
+  handle("start-frontend-server", async (_, appId: number): Promise<void> => {
+    // Get the app's path
+    const app = await db.query.apps.findFirst({
+      where: eq(apps.id, appId),
+      columns: {
+        path: true,
+      },
+    });
+
+    if (!app) {
+      throw new Error("App not found");
+    }
+
+    const frontendPath = path.join(getDyadAppPath(app.path), "frontend");
+
+    // Check if frontend directory exists
+    if (!fs.existsSync(frontendPath)) {
+      logger.warn(`Frontend directory not found: ${frontendPath}`);
+      return;
+    }
+
+    // Check if package.json exists (frontend should have it)
+    if (!fs.existsSync(path.join(frontendPath, "package.json"))) {
+      logger.warn(`Frontend package.json not found: ${frontendPath}`);
+      return;
+    }
+
+    logger.info("Starting frontend development server");
+    await startFrontendServer(frontendPath, appId);
   });
 }

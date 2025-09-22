@@ -1227,6 +1227,8 @@ export async function setupBackendFramework(backendPath: string, framework: stri
     // Auto-start the backend server after dependency installation
     try {
       logger.info(`Auto-starting ${framework} backend server in ${backendPath}`);
+      // Note: appId is not available in this context, so terminal output won't be shown
+      // This is called during app creation, before the app is fully set up
       await startBackendServer(backendPath, framework);
     } catch (startError) {
       logger.warn(`Failed to auto-start ${framework} backend server:`, startError);
@@ -1711,7 +1713,7 @@ async function installDependenciesForFramework(projectPath: string, framework: s
   });
 }
 
-export async function startBackendServer(projectPath: string, framework: string) {
+export async function startBackendServer(projectPath: string, framework: string, appId?: number) {
   const startCommand = getStartCommandForFramework(framework);
 
   return new Promise<void>((resolve, reject) => {
@@ -1759,6 +1761,20 @@ export async function startBackendServer(projectPath: string, framework: string)
     setTimeout(() => {
       serverProcess.unref();
       logger.info(`${framework} server started in background`);
+
+      // If appId is provided, add startup message to backend terminal
+      if (appId) {
+        const { addTerminalOutput } = require('../handlers/terminal_handlers');
+        addTerminalOutput(appId, "backend", `🚀 Starting ${framework} server...`, "command");
+
+        // Add server output to terminal if any
+        if (serverOutput.trim()) {
+          addTerminalOutput(appId, "backend", serverOutput.trim(), "output");
+        }
+
+        addTerminalOutput(appId, "backend", `✅ ${framework} server started successfully (${startCommand})`, "success");
+      }
+
       resolve();
     }, 2000);
   });
@@ -1777,6 +1793,73 @@ function getInstallCommandForFramework(framework: string): string {
       logger.warn(`Unknown framework for dependency installation: ${framework}`);
       return "";
   }
+}
+
+export async function startFrontendServer(projectPath: string, appId?: number) {
+  const startCommand = "npm run dev";
+
+  return new Promise<void>((resolve, reject) => {
+    const { spawn } = require('child_process');
+    const serverProcess = spawn(startCommand, [], {
+      cwd: projectPath,
+      shell: true,
+      stdio: "pipe",
+      detached: true, // Allow the process to run independently
+    });
+
+    logger.info(`Starting frontend server with command: ${startCommand} in ${projectPath}`);
+
+    let serverOutput = "";
+    let serverError = "";
+
+    serverProcess.stdout?.on("data", (data: Buffer) => {
+      serverOutput += data.toString();
+      logger.info(`[frontend server] ${data.toString().trim()}`);
+    });
+
+    serverProcess.stderr?.on("data", (data: Buffer) => {
+      serverError += data.toString();
+      logger.info(`[frontend server] ${data.toString().trim()}`);
+    });
+
+    serverProcess.on("close", (code: number | null) => {
+      if (code === 0) {
+        logger.info("Successfully started frontend server");
+        resolve();
+      } else {
+        logger.warn(`Frontend server exited with code: ${code}. Error: ${serverError}`);
+        // Don't reject here - server might have started successfully and exited normally
+        resolve();
+      }
+    });
+
+    serverProcess.on("error", (err: Error) => {
+      logger.error("Failed to start frontend server:", err);
+      // Don't reject here - user can start server manually
+      resolve();
+    });
+
+    // Give the server a moment to start up, then unref to let it run in background
+    setTimeout(() => {
+      serverProcess.unref();
+      logger.info("Frontend server started in background");
+
+      // If appId is provided, add startup message to frontend terminal
+      if (appId) {
+        const { addTerminalOutput } = require('../handlers/terminal_handlers');
+        addTerminalOutput(appId, "frontend", `🚀 Starting frontend development server...`, "command");
+
+        // Add server output to terminal if any
+        if (serverOutput.trim()) {
+          addTerminalOutput(appId, "frontend", serverOutput.trim(), "output");
+        }
+
+        addTerminalOutput(appId, "frontend", `✅ Frontend server started successfully (npm run dev)`, "success");
+      }
+
+      resolve();
+    }, 3000); // Give more time for frontend server to start
+  });
 }
 
 function getStartCommandForFramework(framework: string): string {

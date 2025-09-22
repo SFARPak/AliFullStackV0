@@ -100,24 +100,32 @@ export function BackendChatInput({ chatId }: { chatId?: number }) {
     handlePaste,
   } = useAttachments();
 
-  // Auto-start backend server when entering backend mode
+  // Auto-start servers when entering backend or fullstack mode
   useEffect(() => {
-    const startBackendServer = async () => {
+    const startServers = async () => {
       if (!appId) return;
 
       try {
+        // Always start backend server for backend/fullstack modes
         logger.info(`Auto-starting backend server for app: ${appId}`);
         await IpcClient.getInstance().startBackendServer(appId);
         logger.info("Backend server started successfully");
+
+        // For fullstack mode, also start frontend server
+        if (settings?.selectedChatMode === "fullstack") {
+          logger.info(`Auto-starting frontend server for fullstack app: ${appId}`);
+          await IpcClient.getInstance().startFrontendServer(appId);
+          logger.info("Frontend server started successfully");
+        }
       } catch (error) {
-        logger.error("Failed to auto-start backend server:", error);
+        logger.error("Failed to auto-start servers:", error);
       }
     };
 
     // Small delay to ensure component is fully mounted
-    const timeoutId = setTimeout(startBackendServer, 1000);
+    const timeoutId = setTimeout(startServers, 1000);
     return () => clearTimeout(timeoutId);
-  }, [appId]);
+  }, [appId, settings?.selectedChatMode]);
 
   // Use the hook to fetch the proposal
   const {
