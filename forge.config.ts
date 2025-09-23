@@ -98,7 +98,7 @@ const config: ForgeConfig = {
       config: {
         repository: {
           owner: "SFARPak",
-          name: "dyad",
+          name: "AliFullStack",
         },
         draft: true,
         force: true,
