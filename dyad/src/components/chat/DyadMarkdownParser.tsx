@@ -124,6 +124,9 @@ function preprocessUnclosedTags(content: string): {
     "dyad-codebase-context",
     "think",
     "dyad-command",
+    "dyad-run-backend-terminal-cmd",
+    "dyad-run-frontend-terminal-cmd",
+    "run_terminal_cmd",
   ];
 
   let processedContent = content;
@@ -191,6 +194,9 @@ function parseCustomTags(content: string): ContentPiece[] {
     "dyad-codebase-context",
     "think",
     "dyad-command",
+    "dyad-run-backend-terminal-cmd",
+    "dyad-run-frontend-terminal-cmd",
+    "run_terminal_cmd",
   ];
 
   const tagPattern = new RegExp(
@@ -427,6 +433,16 @@ function renderCustomTag(
     case "run_terminal_cmd":
       // Terminal commands should be executed silently by the backend
       // Don't render anything for run_terminal_cmd
+      return null;
+
+    case "dyad-run-backend-terminal-cmd":
+      // Terminal commands should be executed silently by the backend
+      // Don't render anything for dyad-run-backend-terminal-cmd
+      return null;
+
+    case "dyad-run-frontend-terminal-cmd":
+      // Terminal commands should be executed silently by the backend
+      // Don't render anything for dyad-run-frontend-terminal-cmd
       return null;
 
     default:
