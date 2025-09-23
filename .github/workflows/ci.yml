@@ -42,6 +42,10 @@ jobs:
           node-version-file: package.json
           cache: npm
           cache-dependency-path: package-lock.json
+      - name: Clean up
+        run: |
+          rm -rf node_modules package-lock.json
+          npm cache clean --force
       - name: Install node modules
         run: npm ci --no-audit --no-fund --progress=false
       - name: Presubmit check (e.g. lint, format)
