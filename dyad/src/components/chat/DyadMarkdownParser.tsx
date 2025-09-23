@@ -10,7 +10,6 @@ import { DyadAddIntegration } from "./DyadAddIntegration";
 import { DyadEdit } from "./DyadEdit";
 import { DyadCodebaseContext } from "./DyadCodebaseContext";
 import { DyadThink } from "./DyadThink";
-import { DyadRunTerminalCmd } from "./DyadRunTerminalCmd";
 import { CodeHighlight } from "./CodeHighlight";
 import { useAtomValue } from "jotai";
 import { isStreamingAtom } from "@/atoms/chatAtoms";
@@ -125,7 +124,6 @@ function preprocessUnclosedTags(content: string): {
     "dyad-codebase-context",
     "think",
     "dyad-command",
-    "run_terminal_cmd",
   ];
 
   let processedContent = content;
@@ -193,7 +191,6 @@ function parseCustomTags(content: string): ContentPiece[] {
     "dyad-codebase-context",
     "think",
     "dyad-command",
-    "run_terminal_cmd",
   ];
 
   const tagPattern = new RegExp(
@@ -428,19 +425,9 @@ function renderCustomTag(
       return null;
 
     case "run_terminal_cmd":
-      return (
-        <DyadRunTerminalCmd
-          node={{
-            properties: {
-              description: attributes.description || "",
-              cwd: attributes.cwd || "",
-              state: getState({ isStreaming, inProgress }),
-            },
-          }}
-        >
-          {content}
-        </DyadRunTerminalCmd>
-      );
+      // Terminal commands should be executed silently by the backend
+      // Don't render anything for run_terminal_cmd
+      return null;
 
     default:
       return null;

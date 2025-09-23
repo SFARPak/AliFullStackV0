@@ -408,128 +408,165 @@ export async function processFullResponseActions(
     // - LLMs like to rename and then edit the same file.
     //////////////////////
 
-    // Process all file deletions
+    // Process file deletions one by one
     for (const filePath of dyadDeletePaths) {
       const fullFilePath = safeJoin(appPath, filePath);
 
-      // Delete the file if it exists
-      if (fs.existsSync(fullFilePath)) {
-        if (fs.lstatSync(fullFilePath).isDirectory()) {
-          fs.rmdirSync(fullFilePath, { recursive: true });
+      try {
+        // Delete the file if it exists
+        if (fs.existsSync(fullFilePath)) {
+          if (fs.lstatSync(fullFilePath).isDirectory()) {
+            fs.rmdirSync(fullFilePath, { recursive: true });
+          } else {
+            fs.unlinkSync(fullFilePath);
+          }
+          logger.log(`Successfully deleted file: ${fullFilePath}`);
+          deletedFiles.push(filePath);
+
+          // Remove the file from git and commit immediately
+          try {
+            await git.remove({
+              fs,
+              dir: appPath,
+              filepath: filePath,
+            });
+            const commitHash = await gitCommit({
+              path: appPath,
+              message: `[alifullstack] Deleted file: ${filePath}`,
+            });
+            logger.log(`Committed file deletion: ${filePath} with hash ${commitHash}`);
+          } catch (gitError) {
+            logger.warn(`Failed to git remove deleted file ${filePath}:`, gitError);
+            warnings.push({
+              message: `Failed to commit deletion of file: ${filePath}`,
+              error: gitError,
+            });
+          }
         } else {
-          fs.unlinkSync(fullFilePath);
+          logger.warn(`File to delete does not exist: ${fullFilePath}`);
         }
-        logger.log(`Successfully deleted file: ${fullFilePath}`);
-        deletedFiles.push(filePath);
 
-        // Remove the file from git
-        try {
-          await git.remove({
-            fs,
-            dir: appPath,
-            filepath: filePath,
-          });
-        } catch (error) {
-          logger.warn(`Failed to git remove deleted file ${filePath}:`, error);
-          // Continue even if remove fails as the file was still deleted
+        if (isServerFunction(filePath)) {
+          try {
+            await deleteSupabaseFunction({
+              supabaseProjectId: chatWithApp.app.supabaseProjectId!,
+              functionName: getFunctionNameFromPath(filePath),
+            });
+          } catch (error) {
+            errors.push({
+              message: `Failed to delete Supabase function: ${filePath}`,
+              error: error,
+            });
+          }
         }
-      } else {
-        logger.warn(`File to delete does not exist: ${fullFilePath}`);
-      }
-      if (isServerFunction(filePath)) {
-        try {
-          await deleteSupabaseFunction({
-            supabaseProjectId: chatWithApp.app.supabaseProjectId!,
-            functionName: getFunctionNameFromPath(filePath),
-          });
-        } catch (error) {
-          errors.push({
-            message: `Failed to delete Supabase function: ${filePath}`,
-            error: error,
-          });
-        }
-      }
-    }
-
-    // Process all file renames
-    for (const tag of dyadRenameTags) {
-      const fromPath = safeJoin(appPath, tag.from);
-      const toPath = safeJoin(appPath, tag.to);
-
-      // Ensure target directory exists
-      const dirPath = path.dirname(toPath);
-      fs.mkdirSync(dirPath, { recursive: true });
-
-      // Rename the file
-      if (fs.existsSync(fromPath)) {
-        fs.renameSync(fromPath, toPath);
-        logger.log(`Successfully renamed file: ${fromPath} -> ${toPath}`);
-        renamedFiles.push(tag.to);
-
-        // Add the new file and remove the old one from git
-        await git.add({
-          fs,
-          dir: appPath,
-          filepath: tag.to,
+      } catch (error) {
+        errors.push({
+          message: `Failed to delete file: ${filePath}`,
+          error: error,
         });
-        try {
-          await git.remove({
-            fs,
-            dir: appPath,
-            filepath: tag.from,
-          });
-        } catch (error) {
-          logger.warn(`Failed to git remove old file ${tag.from}:`, error);
-          // Continue even if remove fails as the file was still renamed
-        }
-      } else {
-        logger.warn(`Source file for rename does not exist: ${fromPath}`);
-      }
-      if (isServerFunction(tag.from)) {
-        try {
-          await deleteSupabaseFunction({
-            supabaseProjectId: chatWithApp.app.supabaseProjectId!,
-            functionName: getFunctionNameFromPath(tag.from),
-          });
-        } catch (error) {
-          warnings.push({
-            message: `Failed to delete Supabase function: ${tag.from} as part of renaming ${tag.from} to ${tag.to}`,
-            error: error,
-          });
-        }
-      }
-      if (isServerFunction(tag.to)) {
-        try {
-          await deploySupabaseFunctions({
-            supabaseProjectId: chatWithApp.app.supabaseProjectId!,
-            functionName: getFunctionNameFromPath(tag.to),
-            content: await readFileFromFunctionPath(toPath),
-          });
-        } catch (error) {
-          errors.push({
-            message: `Failed to deploy Supabase function: ${tag.to} as part of renaming ${tag.from} to ${tag.to}`,
-            error: error,
-          });
-        }
       }
     }
 
-    // Process all file writes (dyad-write tags)
+    // Process file renames one by one
+    for (const tag of dyadRenameTags) {
+      try {
+        const fromPath = safeJoin(appPath, tag.from);
+        const toPath = safeJoin(appPath, tag.to);
+
+        // Ensure target directory exists
+        const dirPath = path.dirname(toPath);
+        fs.mkdirSync(dirPath, { recursive: true });
+
+        // Rename the file
+        if (fs.existsSync(fromPath)) {
+          fs.renameSync(fromPath, toPath);
+          logger.log(`Successfully renamed file: ${fromPath} -> ${toPath}`);
+          renamedFiles.push(tag.to);
+
+          // Add the new file, remove the old one, and commit immediately
+          try {
+            await git.add({
+              fs,
+              dir: appPath,
+              filepath: tag.to,
+            });
+            try {
+              await git.remove({
+                fs,
+                dir: appPath,
+                filepath: tag.from,
+              });
+            } catch (removeError) {
+              logger.warn(`Failed to git remove old file ${tag.from}:`, removeError);
+            }
+            const commitHash = await gitCommit({
+              path: appPath,
+              message: `[alifullstack] Renamed file: ${tag.from} -> ${tag.to}`,
+            });
+            logger.log(`Committed file rename: ${tag.from} -> ${tag.to} with hash ${commitHash}`);
+          } catch (gitError) {
+            logger.warn(`Failed to commit file rename ${tag.from} -> ${tag.to}:`, gitError);
+            warnings.push({
+              message: `Failed to commit rename: ${tag.from} -> ${tag.to}`,
+              error: gitError,
+            });
+          }
+        } else {
+          logger.warn(`Source file for rename does not exist: ${fromPath}`);
+        }
+
+        // Handle Supabase functions
+        if (isServerFunction(tag.from)) {
+          try {
+            await deleteSupabaseFunction({
+              supabaseProjectId: chatWithApp.app.supabaseProjectId!,
+              functionName: getFunctionNameFromPath(tag.from),
+            });
+          } catch (error) {
+            warnings.push({
+              message: `Failed to delete Supabase function: ${tag.from} as part of renaming ${tag.from} to ${tag.to}`,
+              error: error,
+            });
+          }
+        }
+        if (isServerFunction(tag.to)) {
+          try {
+            await deploySupabaseFunctions({
+              supabaseProjectId: chatWithApp.app.supabaseProjectId!,
+              functionName: getFunctionNameFromPath(tag.to),
+              content: await readFileFromFunctionPath(toPath),
+            });
+          } catch (error) {
+            errors.push({
+              message: `Failed to deploy Supabase function: ${tag.to} as part of renaming ${tag.from} to ${tag.to}`,
+              error: error,
+            });
+          }
+        }
+      } catch (error) {
+        errors.push({
+          message: `Failed to rename file: ${tag.from} -> ${tag.to}`,
+          error: error,
+        });
+      }
+    }
+
+    // Process all dyad-write tags one by one
     for (const tag of dyadWriteTags) {
       const filePath = tag.path;
       let content: string | Buffer = tag.content;
       const fullFilePath = safeJoin(appPath, filePath);
 
-      // Check if this is a search_replace operation
-      if (typeof content === "string" && content.startsWith("SEARCH_REPLACE:")) {
-        // Handle search_replace operation
-        const parts = content.split(":");
-        if (parts.length >= 3) {
-          const oldString = parts[1];
-          const newString = parts.slice(2).join(":");
+      try {
+        // Check if this is a search_replace operation
+        if (typeof content === "string" && content.startsWith("SEARCH_REPLACE:")) {
+          // Handle search_replace operation
+          const parts = content.split(":");
+          if (parts.length >= 3) {
+            const oldString = parts[1];
+            const newString = parts.slice(2).join(":");
 
-          if (fs.existsSync(fullFilePath)) {
-            try {
+            if (fs.existsSync(fullFilePath)) {
               let fileContent = fs.readFileSync(fullFilePath, 'utf8');
 
               if (fileContent.includes(oldString)) {
@@ -537,6 +574,26 @@ export async function processFullResponseActions(
                 fs.writeFileSync(fullFilePath, fileContent);
                 logger.log(`Successfully applied search_replace to file: ${fullFilePath}`);
                 writtenFiles.push(filePath);
+
+                // Commit immediately
+                try {
+                  await git.add({
+                    fs,
+                    dir: appPath,
+                    filepath: filePath,
+                  });
+                  const commitHash = await gitCommit({
+                    path: appPath,
+                    message: `[alifullstack] Applied search_replace to: ${filePath}`,
+                  });
+                  logger.log(`Committed search_replace operation: ${filePath} with hash ${commitHash}`);
+                } catch (gitError) {
+                  logger.warn(`Failed to commit search_replace operation for ${filePath}:`, gitError);
+                  warnings.push({
+                    message: `Failed to commit search_replace to file: ${filePath}`,
+                    error: gitError,
+                  });
+                }
               } else {
                 logger.warn(`Old string not found in file for search_replace: ${fullFilePath}`);
                 warnings.push({
@@ -544,23 +601,100 @@ export async function processFullResponseActions(
                   error: null,
                 });
               }
+            } else {
+              logger.warn(`File not found for search_replace: ${fullFilePath}`);
+              warnings.push({
+                message: `File not found for search_replace: ${filePath}`,
+                error: null,
+              });
+            }
+          }
+        } else {
+          // Handle regular file write
+          // Check if content (stripped of whitespace) exactly matches a file ID and replace with actual file content
+          if (fileUploadsMap) {
+            const trimmedContent = tag.content.trim();
+            const fileInfo = fileUploadsMap.get(trimmedContent);
+            if (fileInfo) {
+              try {
+                const fileContent = await readFile(fileInfo.filePath);
+                content = fileContent;
+                logger.log(
+                  `Replaced file ID ${trimmedContent} with content from ${fileInfo.originalName}`,
+                );
+              } catch (error) {
+                logger.error(
+                  `Failed to read uploaded file ${fileInfo.originalName}:`,
+                  error,
+                );
+                errors.push({
+                  message: `Failed to read uploaded file: ${fileInfo.originalName}`,
+                  error: error,
+                });
+              }
+            }
+          }
+
+          // Ensure directory exists
+          const dirPath = path.dirname(fullFilePath);
+          fs.mkdirSync(dirPath, { recursive: true });
+
+          // Write file content
+          fs.writeFileSync(fullFilePath, content);
+          logger.log(`Successfully wrote file: ${fullFilePath}`);
+          writtenFiles.push(filePath);
+
+          // Handle Supabase function deployment
+          if (isServerFunction(filePath) && typeof content === "string") {
+            try {
+              await deploySupabaseFunctions({
+                supabaseProjectId: chatWithApp.app.supabaseProjectId!,
+                functionName: path.basename(path.dirname(filePath)),
+                content: content,
+              });
             } catch (error) {
-              logger.error(`Failed to apply search_replace to file: ${fullFilePath}`, error);
               errors.push({
-                message: `Failed to apply search_replace to file: ${filePath}`,
+                message: `Failed to deploy Supabase function: ${filePath}`,
                 error: error,
               });
             }
-          } else {
-            logger.warn(`File not found for search_replace: ${fullFilePath}`);
+          }
+
+          // Commit immediately
+          try {
+            await git.add({
+              fs,
+              dir: appPath,
+              filepath: filePath,
+            });
+            const commitHash = await gitCommit({
+              path: appPath,
+              message: `[alifullstack] Wrote file: ${filePath}`,
+            });
+            logger.log(`Committed file write: ${filePath} with hash ${commitHash}`);
+          } catch (gitError) {
+            logger.warn(`Failed to commit file write for ${filePath}:`, gitError);
             warnings.push({
-              message: `File not found for search_replace: ${filePath}`,
-              error: null,
+              message: `Failed to commit file write: ${filePath}`,
+              error: gitError,
             });
           }
         }
-      } else {
-        // Handle regular file write
+      } catch (error) {
+        errors.push({
+          message: `Failed to write file: ${filePath}`,
+          error: error,
+        });
+      }
+    }
+
+    // Process write_to_file tags one by one
+    for (const tag of writeToFileTags) {
+      const filePath = tag.path;
+      let content: string | Buffer = tag.content;
+      const fullFilePath = safeJoin(appPath, filePath);
+
+      try {
         // Check if content (stripped of whitespace) exactly matches a file ID and replace with actual file content
         if (fileUploadsMap) {
           const trimmedContent = tag.content.trim();
@@ -591,8 +725,10 @@ export async function processFullResponseActions(
 
         // Write file content
         fs.writeFileSync(fullFilePath, content);
-        logger.log(`Successfully wrote file: ${fullFilePath}`);
+        logger.log(`Successfully wrote file via write_to_file tag: ${fullFilePath}`);
         writtenFiles.push(filePath);
+
+        // Handle Supabase function deployment
         if (isServerFunction(filePath) && typeof content === "string") {
           try {
             await deploySupabaseFunctions({
@@ -607,70 +743,41 @@ export async function processFullResponseActions(
             });
           }
         }
-      }
-    }
 
-    // Process write_to_file tags
-    for (const tag of writeToFileTags) {
-      const filePath = tag.path;
-      let content: string | Buffer = tag.content;
-      const fullFilePath = safeJoin(appPath, filePath);
-
-      // Check if content (stripped of whitespace) exactly matches a file ID and replace with actual file content
-      if (fileUploadsMap) {
-        const trimmedContent = tag.content.trim();
-        const fileInfo = fileUploadsMap.get(trimmedContent);
-        if (fileInfo) {
-          try {
-            const fileContent = await readFile(fileInfo.filePath);
-            content = fileContent;
-            logger.log(
-              `Replaced file ID ${trimmedContent} with content from ${fileInfo.originalName}`,
-            );
-          } catch (error) {
-            logger.error(
-              `Failed to read uploaded file ${fileInfo.originalName}:`,
-              error,
-            );
-            errors.push({
-              message: `Failed to read uploaded file: ${fileInfo.originalName}`,
-              error: error,
-            });
-          }
-        }
-      }
-
-      // Ensure directory exists
-      const dirPath = path.dirname(fullFilePath);
-      fs.mkdirSync(dirPath, { recursive: true });
-
-      // Write file content
-      fs.writeFileSync(fullFilePath, content);
-      logger.log(`Successfully wrote file via write_to_file tag: ${fullFilePath}`);
-      writtenFiles.push(filePath);
-      if (isServerFunction(filePath) && typeof content === "string") {
+        // Commit immediately
         try {
-          await deploySupabaseFunctions({
-            supabaseProjectId: chatWithApp.app.supabaseProjectId!,
-            functionName: path.basename(path.dirname(filePath)),
-            content: content,
+          await git.add({
+            fs,
+            dir: appPath,
+            filepath: filePath,
           });
-        } catch (error) {
-          errors.push({
-            message: `Failed to deploy Supabase function: ${filePath}`,
-            error: error,
+          const commitHash = await gitCommit({
+            path: appPath,
+            message: `[alifullstack] Wrote file via write_to_file tag: ${filePath}`,
+          });
+          logger.log(`Committed write_to_file tag: ${filePath} with hash ${commitHash}`);
+        } catch (gitError) {
+          logger.warn(`Failed to commit write_to_file tag for ${filePath}:`, gitError);
+          warnings.push({
+            message: `Failed to commit write_to_file operation: ${filePath}`,
+            error: gitError,
           });
         }
+      } catch (error) {
+        errors.push({
+          message: `Failed to write file via write_to_file tag: ${filePath}`,
+          error: error,
+        });
       }
     }
 
-    // Process search_replace tags
+    // Process search_replace tags one by one
     for (const tag of searchReplaceTags) {
       const filePath = tag.file;
       const fullFilePath = safeJoin(appPath, filePath);
 
-      if (fs.existsSync(fullFilePath)) {
-        try {
+      try {
+        if (fs.existsSync(fullFilePath)) {
           let fileContent = fs.readFileSync(fullFilePath, 'utf8');
 
           // Replace old_string with new_string
@@ -682,6 +789,26 @@ export async function processFullResponseActions(
             fs.writeFileSync(fullFilePath, fileContent);
             logger.log(`Successfully applied search_replace to file: ${fullFilePath}`);
             writtenFiles.push(filePath);
+
+            // Commit immediately
+            try {
+              await git.add({
+                fs,
+                dir: appPath,
+                filepath: filePath,
+              });
+              const commitHash = await gitCommit({
+                path: appPath,
+                message: `[alifullstack] Applied search_replace to: ${filePath}`,
+              });
+              logger.log(`Committed search_replace: ${filePath} with hash ${commitHash}`);
+            } catch (gitError) {
+              logger.warn(`Failed to commit search_replace for ${filePath}:`, gitError);
+              warnings.push({
+                message: `Failed to commit search_replace operation: ${filePath}`,
+                error: gitError,
+              });
+            }
           } else {
             logger.warn(`Old string not found in file for search_replace: ${fullFilePath}`);
             warnings.push({
@@ -689,23 +816,23 @@ export async function processFullResponseActions(
               error: null,
             });
           }
-        } catch (error) {
-          logger.error(`Failed to apply search_replace to file: ${fullFilePath}`, error);
-          errors.push({
-            message: `Failed to apply search_replace to file: ${filePath}`,
-            error: error,
+        } else {
+          logger.warn(`File not found for search_replace: ${fullFilePath}`);
+          warnings.push({
+            message: `File not found for search_replace: ${filePath}`,
+            error: null,
           });
         }
-      } else {
-        logger.warn(`File not found for search_replace: ${fullFilePath}`);
-        warnings.push({
-          message: `File not found for search_replace: ${filePath}`,
-          error: null,
+      } catch (error) {
+        logger.error(`Failed to apply search_replace to file: ${fullFilePath}`, error);
+        errors.push({
+          message: `Failed to apply search_replace to file: ${filePath}`,
+          error: error,
         });
       }
     }
 
-    // If we have any file changes, commit them all at once
+    // Check if we have any changes (for file dependencies handling)
     hasChanges =
       writtenFiles.length > 0 ||
       renamedFiles.length > 0 ||
@@ -714,85 +841,30 @@ export async function processFullResponseActions(
       writeToFileTags.length > 0 ||
       searchReplaceTags.length > 0;
 
-    let uncommittedFiles: string[] = [];
+    const uncommittedFiles: string[] = [];
     let extraFilesError: string | undefined;
 
     if (hasChanges) {
-      // Stage all written files
-      for (const file of writtenFiles) {
-        await git.add({
+      // Get the last commit hash from git log to save to the message
+      try {
+        const lastCommitHash = await git.log({
           fs,
           dir: appPath,
-          filepath: file,
+          depth: 1,
         });
-      }
+        const commitHash = lastCommitHash?.[0]?.oid;
 
-      // Create commit with details of all changes
-      const changes = [];
-      if (writtenFiles.length > 0)
-        changes.push(`wrote ${writtenFiles.length} file(s)`);
-      if (renamedFiles.length > 0)
-        changes.push(`renamed ${renamedFiles.length} file(s)`);
-      if (deletedFiles.length > 0)
-        changes.push(`deleted ${deletedFiles.length} file(s)`);
-      if (dyadAddDependencyPackages.length > 0)
-        changes.push(
-          `added ${dyadAddDependencyPackages.join(", ")} package(s)`,
-        );
-      if (dyadExecuteSqlQueries.length > 0)
-        changes.push(`executed ${dyadExecuteSqlQueries.length} SQL queries`);
-
-      const commitMessage = chatSummary
-        ? `[alifullstack] ${chatSummary} - ${changes.join(", ")}`
-        : `[alifullstack] ${changes.join(", ")}`;
-      // Use chat summary, if provided, or default for commit message
-      let commitHash = await gitCommit({
-        path: appPath,
-        message: commitMessage,
-      });
-      logger.log(`Successfully committed changes: ${changes.join(", ")}`);
-
-      // Check for any uncommitted changes after the commit
-      const statusMatrix = await git.statusMatrix({ fs, dir: appPath });
-      uncommittedFiles = (statusMatrix || [])
-        .filter((row) => row[1] !== 1 || row[2] !== 1 || row[3] !== 1)
-        .map((row) => row[0]); // Get just the file paths
-
-      if (uncommittedFiles.length > 0) {
-        // Stage all changes
-        await git.add({
-          fs,
-          dir: appPath,
-          filepath: ".",
-        });
-        try {
-          commitHash = await gitCommit({
-            path: appPath,
-            message: commitMessage + " + extra files edited outside of AliFullStack",
-            amend: true,
-          });
-          logger.log(
-            `Amend commit with changes outside of dyad: ${uncommittedFiles.join(", ")}`,
-          );
-        } catch (error) {
-          // Just log, but don't throw an error because the user can still
-          // commit these changes outside of Dyad if needed.
-          logger.error(
-            `Failed to commit changes outside of dyad: ${uncommittedFiles.join(
-              ", ",
-            )}`,
-          );
-          extraFilesError = (error as any).toString();
+        if (commitHash) {
+          await db
+            .update(messages)
+            .set({
+              commitHash: commitHash,
+            })
+            .where(eq(messages.id, messageId));
         }
+      } catch (error) {
+        logger.warn("Failed to get last commit hash:", error);
       }
-
-      // Save the commit hash to the message
-      await db
-        .update(messages)
-        .set({
-          commitHash: commitHash,
-        })
-        .where(eq(messages.id, messageId));
     }
     logger.log("mark as approved: hasChanges", hasChanges);
     // Update the message to approved
