@@ -6,6 +6,7 @@ import {
 } from "@SFARPak/supabase-management-js";
 import log from "electron-log";
 import { IS_TEST_BUILD } from "../ipc/utils/test_utils";
+import { apiFetch } from "../ipc/utils/api_client";
 
 const logger = log.scope("supabase_management_client");
 
@@ -45,7 +46,7 @@ export async function refreshSupabaseToken(): Promise<void> {
 
   try {
     // Make request to Supabase refresh endpoint
-    const response = await fetch(
+    const response = await apiFetch(
       "https://supabase-oauth.alifullstack.alitech.io/api/connect-supabase/refresh",
       {
         method: "POST",
@@ -193,7 +194,7 @@ export async function deploySupabaseFunctions({
   );
   formData.append("file", new Blob([content]), "index.ts");
 
-  const response = await fetch(
+  const response = await apiFetch(
     `https://api.supabase.com/v1/projects/${supabaseProjectId}/functions/deploy?slug=${functionName}`,
     {
       method: "POST",

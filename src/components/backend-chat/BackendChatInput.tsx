@@ -100,9 +100,9 @@ export function BackendChatInput({ chatId }: { chatId?: number }) {
     handlePaste,
   } = useAttachments();
 
-  // Initialize terminals and auto-start servers when entering backend or fullstack mode
+  // Initialize terminals when entering backend or fullstack mode
   useEffect(() => {
-    const initializeTerminalsAndStartServers = async () => {
+    const initializeTerminals = async () => {
       if (!appId) return;
 
       try {
@@ -118,26 +118,13 @@ export function BackendChatInput({ chatId }: { chatId?: number }) {
           addTerminalOutput(appId, "frontend", `🚀 Frontend Development Environment Ready`, "output");
           addTerminalOutput(appId, "frontend", `Type commands or ask me to run frontend operations...`, "output");
         }
-
-        // Start servers after initializing terminals
-        // Always start backend server for backend/fullstack modes
-        logger.info(`Auto-starting backend server for app: ${appId}`);
-        await IpcClient.getInstance().startBackendServer(appId);
-        logger.info("Backend server started successfully");
-
-        // For fullstack mode, also start frontend server
-        if (settings?.selectedChatMode === "fullstack") {
-          logger.info(`Auto-starting frontend server for fullstack app: ${appId}`);
-          await IpcClient.getInstance().startFrontendServer(appId);
-          logger.info("Frontend server started successfully");
-        }
       } catch (error) {
-        logger.error("Failed to initialize terminals or auto-start servers:", error);
+        logger.error("Failed to initialize terminals:", error);
       }
     };
 
     // Small delay to ensure component is fully mounted
-    const timeoutId = setTimeout(initializeTerminalsAndStartServers, 500);
+    const timeoutId = setTimeout(initializeTerminals, 500);
     return () => clearTimeout(timeoutId);
   }, [appId, settings?.selectedChatMode]);
 

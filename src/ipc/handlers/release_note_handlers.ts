@@ -1,8 +1,8 @@
 import log from "electron-log";
-import fetch from "node-fetch";
 import { createLoggedHandler } from "./safe_handle";
 import { DoesReleaseNoteExistParams } from "../ipc_types";
 import { IS_TEST_BUILD } from "../utils/test_utils";
+import { apiFetch } from "../utils/api_client";
 
 const logger = log.scope("release_note_handlers");
 
@@ -28,7 +28,7 @@ export function registerReleaseNoteHandlers() {
       logger.debug(`Checking for release note at: ${releaseNoteUrl}`);
 
       try {
-        const response = await fetch(releaseNoteUrl, { method: "HEAD" }); // Use HEAD to check existence without downloading content
+        const response = await apiFetch(releaseNoteUrl, { method: "HEAD" }); // Use HEAD to check existence without downloading content
         if (response.ok) {
           logger.debug(
             `Release note found for version ${version} at ${releaseNoteUrl}`,

@@ -43,8 +43,7 @@ import { createLoggedHandler } from "./safe_handle";
 import { getLanguageModelProviders } from "../shared/language_model_helpers";
 import { startProxy } from "../utils/start_proxy_server";
 import { Worker } from "worker_threads";
-import { createFromTemplate } from "./createFromTemplate";
-import { setupBackendFramework } from "./createFromTemplate";
+import { createFromTemplate, setupBackendFramework, getStartCommandForFramework } from "./createFromTemplate";
 import { gitCommit } from "../utils/git_utils";
 import { safeSend } from "../utils/safe_sender";
 import { normalizePath } from "../../../shared/normalizePath";
@@ -130,6 +129,64 @@ async function executeApp({
   }
 }
 
+async function ensureBackendDirectory(backendPath: string): Promise<void> {
+  // Create backend directory if it doesn't exist
+  if (!fs.existsSync(backendPath)) {
+    await fsPromises.mkdir(backendPath, { recursive: true });
+    logger.info(`Created backend directory: ${backendPath}`);
+  }
+
+  // Check if backend directory is empty or missing key files
+  const backendFiles = fs.readdirSync(backendPath);
+  if (backendFiles.length === 0) {
+    // Create a basic Python Flask backend structure
+    const requirementsTxt = `flask==2.3.3
+flask-cors==4.0.0
+python-dotenv==1.0.0
+`;
+
+    const mainPy = `from flask import Flask, jsonify
+from flask_cors import CORS
+import os
+
+app = Flask(__name__)
+CORS(app)
+
+@app.route('/')
+def hello():
+    return jsonify({"message": "Backend API is running!"})
+
+@app.route('/api/health')
+def health():
+    return jsonify({"status": "healthy"})
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 8000))
+    app.run(debug=True, host='0.0.0.0', port=port)
+`;
+
+    const startSh = `#!/bin/bash
+# Start script for backend server
+echo "Starting backend server..."
+python main.py
+`;
+
+    try {
+      await fsPromises.writeFile(path.join(backendPath, 'requirements.txt'), requirementsTxt, 'utf-8');
+      await fsPromises.writeFile(path.join(backendPath, 'main.py'), mainPy, 'utf-8');
+      await fsPromises.writeFile(path.join(backendPath, 'start.sh'), startSh, 'utf-8');
+
+      // Make start.sh executable
+      await fsPromises.chmod(path.join(backendPath, 'start.sh'), 0o755);
+
+      logger.info(`Created basic Flask backend structure in ${backendPath}`);
+    } catch (error) {
+      logger.error(`Failed to create backend structure in ${backendPath}:`, error);
+      throw error;
+    }
+  }
+}
+
 async function executeAppLocalNode({
   appPath,
   appId,
@@ -149,21 +206,123 @@ async function executeAppLocalNode({
   const frontendPath = path.join(appPath, "frontend");
   const backendPath = path.join(appPath, "backend");
 
+  const hasFrontend = fs.existsSync(frontendPath);
+  const hasBackend = fs.existsSync(backendPath);
+
+  // For fullstack mode (both frontend and backend exist), start both servers
+  if (hasFrontend && hasBackend) {
+    logger.info(`Fullstack mode detected - starting both frontend and backend servers for app ${appId}`);
+
+    // Ensure backend directory exists and has proper structure
+    await ensureBackendDirectory(backendPath);
+
+    // Determine backend framework for proper server command
+    let backendFramework: string | null = null;
+    if (fs.existsSync(path.join(backendPath, "package.json"))) {
+      backendFramework = "nodejs";
+    } else if (fs.existsSync(path.join(backendPath, "requirements.txt"))) {
+      // Check for framework-specific files
+      if (fs.existsSync(path.join(backendPath, "manage.py"))) {
+        backendFramework = "django";
+      } else if (fs.existsSync(path.join(backendPath, "main.py"))) {
+        backendFramework = "fastapi";
+      } else if (fs.existsSync(path.join(backendPath, "app.py"))) {
+        backendFramework = "flask";
+      } else {
+        backendFramework = "python";
+      }
+    }
+
+    // Start backend server first
+    try {
+      let backendCommand: string;
+      if (backendFramework) {
+        backendCommand = await getStartCommandForFramework(backendFramework);
+        if (!backendCommand) {
+          backendCommand = getCommand({ installCommand, startCommand }); // Fallback
+        }
+      } else {
+        backendCommand = getCommand({ installCommand, startCommand }); // Fallback
+      }
+
+      const backendProcess = spawn(backendCommand, [], {
+        cwd: backendPath,
+        shell: true,
+        stdio: "pipe",
+        detached: false,
+      });
+
+      if (backendProcess.pid) {
+        const backendProcessId = processCounter.increment();
+        runningApps.set(appId, {
+          process: backendProcess,
+          processId: backendProcessId,
+          isDocker: false,
+        });
+
+        listenToProcess({
+          process: backendProcess,
+          appId,
+          isNeon,
+          event,
+          terminalType: "backend",
+        });
+
+        logger.info(`Backend server started for fullstack app ${appId} (PID: ${backendProcess.pid})`);
+      }
+    } catch (error) {
+      logger.error(`Failed to start backend server for fullstack app ${appId}:`, error);
+    }
+
+    // Start frontend server
+    try {
+      const frontendCommand = "npm run dev --port 32100";
+      const frontendProcess = spawn(frontendCommand, [], {
+        cwd: frontendPath,
+        shell: true,
+        stdio: "pipe",
+        detached: false,
+      });
+
+      if (frontendProcess.pid) {
+        const frontendProcessId = processCounter.increment();
+        // For fullstack, we need multiple processes - store them with different keys
+        runningApps.set(`${appId}-frontend`, {
+          process: frontendProcess,
+          processId: frontendProcessId,
+          isDocker: false,
+        });
+
+        listenToProcess({
+          process: frontendProcess,
+          appId,
+          isNeon,
+          event,
+          terminalType: "frontend",
+        });
+
+        logger.info(`Frontend server started for fullstack app ${appId} (PID: ${frontendProcess.pid})`);
+      }
+    } catch (error) {
+      logger.error(`Failed to start frontend server for fullstack app ${appId}:`, error);
+    }
+
+    return;
+  }
+
+  // For single-server modes (frontend-only or backend-only)
   let workingDir = appPath; // Default to root for backward compatibility
 
-  if (fs.existsSync(frontendPath) && !fs.existsSync(backendPath)) {
+  if (hasFrontend && !hasBackend) {
     // Only frontend exists (frontend-only app)
     workingDir = frontendPath;
-  } else if (fs.existsSync(backendPath) && !fs.existsSync(frontendPath)) {
+  } else if (hasBackend && !hasFrontend) {
     // Only backend exists (backend-only app)
     workingDir = backendPath;
-  } else if (fs.existsSync(frontendPath) && fs.existsSync(backendPath)) {
-    // Both exist - prefer frontend since it has the package.json and dev server
-    workingDir = frontendPath;
-  } else if (fs.existsSync(frontendPath)) {
+  } else if (hasFrontend) {
     // Only frontend exists
     workingDir = frontendPath;
-  } else if (fs.existsSync(backendPath)) {
+  } else if (hasBackend) {
     // Only backend exists
     workingDir = backendPath;
   }
@@ -197,11 +356,13 @@ async function executeAppLocalNode({
     isDocker: false,
   });
 
+  const terminalType = workingDir === backendPath ? "backend" : "frontend";
   listenToProcess({
     process: spawnedProcess,
     appId,
     isNeon,
     event,
+    terminalType,
   });
 }
 
@@ -1116,45 +1277,55 @@ export function registerAppHandlers() {
         `Attempting to stop app ${appId}. Current running apps: ${runningApps.size}`,
       );
       return withLock(appId, async () => {
-        const appInfo = runningApps.get(appId);
+        // For fullstack apps, we need to stop both backend and frontend processes
+        const processesToStop: { key: string | number; appInfo: any }[] = [];
 
-        if (!appInfo) {
+        // Check for main app process
+        const mainAppInfo = runningApps.get(appId);
+        if (mainAppInfo) {
+          processesToStop.push({ key: appId, appInfo: mainAppInfo });
+        }
+
+        // Check for frontend process (for fullstack apps)
+        const frontendAppInfo = runningApps.get(`${appId}-frontend`);
+        if (frontendAppInfo) {
+          processesToStop.push({ key: `${appId}-frontend`, appInfo: frontendAppInfo });
+        }
+
+        if (processesToStop.length === 0) {
           logger.log(
-            `App ${appId} not found in running apps map. Assuming already stopped.`,
+            `No processes found for app ${appId}. Assuming already stopped.`,
           );
           return;
         }
 
-        const { process, processId } = appInfo;
-        logger.log(
-          `Found running app ${appId} with processId ${processId} (PID: ${process.pid}). Attempting to stop.`,
-        );
-
-        // Check if the process is already exited or closed
-        if (process.exitCode !== null || process.signalCode !== null) {
+        // Stop all processes
+        for (const { key, appInfo } of processesToStop) {
+          const { process, processId } = appInfo;
           logger.log(
-            `Process for app ${appId} (PID: ${process.pid}) already exited (code: ${process.exitCode}, signal: ${process.signalCode}). Cleaning up map.`,
+            `Found running process for app ${key} with processId ${processId} (PID: ${process.pid}). Attempting to stop.`,
           );
-          runningApps.delete(appId); // Ensure cleanup if somehow missed
-          return;
+
+          // Check if the process is already exited or closed
+          if (process.exitCode !== null || process.signalCode !== null) {
+            logger.log(
+              `Process for app ${key} (PID: ${process.pid}) already exited (code: ${process.exitCode}, signal: ${process.signalCode}). Cleaning up map.`,
+            );
+            runningApps.delete(key as any); // Ensure cleanup if somehow missed
+            continue;
+          }
+
+          try {
+            await stopAppByInfo(key as any, appInfo);
+          } catch (error: any) {
+            logger.error(
+              `Error stopping process for app ${key} (PID: ${process.pid}, processId: ${processId}):`,
+              error,
+            );
+          }
         }
 
-        try {
-          await stopAppByInfo(appId, appInfo);
-
-          // Now, safely remove the app from the map *after* confirming closure
-          removeAppIfCurrentProcess(appId, process);
-
-          return;
-        } catch (error: any) {
-          logger.error(
-            `Error stopping app ${appId} (PID: ${process.pid}, processId: ${processId}):`,
-            error,
-          );
-          // Attempt cleanup even if an error occurred during the stop process
-          removeAppIfCurrentProcess(appId, process);
-          throw new Error(`Failed to stop app ${appId}: ${error.message}`);
-        }
+        return;
       });
     },
   );

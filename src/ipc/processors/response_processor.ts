@@ -18,6 +18,29 @@ import {
 import { isServerFunction } from "../../supabase_admin/supabase_utils";
 import { UserSettings } from "../../lib/schemas";
 import { gitCommit } from "../utils/git_utils";
+
+// Helper function to handle git operations with timeout
+function createSafeGitOperation(warnings: Output[], errors: Output[]) {
+  return async function safeGitOperation(operation: () => Promise<any>, operationName: string, filePath?: string): Promise<any> {
+    try {
+      // Set a timeout for git operations (30 seconds)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`${operationName} timed out after 30 seconds`)), 30000);
+      });
+
+      const result = await Promise.race([operation(), timeoutPromise]);
+      return result;
+    } catch (error) {
+      const errorMessage = `${operationName} failed${filePath ? ` for ${filePath}` : ''}: ${error}`;
+      logger.warn(errorMessage);
+      warnings.push({
+        message: errorMessage,
+        error: error,
+      });
+      return null;
+    }
+  };
+}
 import { readSettings } from "@/main/settings";
 import { writeMigrationFile } from "../utils/file_utils";
 import {
@@ -114,8 +137,11 @@ export async function processFullResponseActions(
   const deletedFiles: string[] = [];
   let hasChanges = false;
 
-  const warnings: Output[] = [];
-  const errors: Output[] = [];
+  let warnings: Output[] = [];
+  let errors: Output[] = [];
+
+  // Create the safe git operation function with access to warnings/errors
+  const safeGitOperation = createSafeGitOperation(warnings, errors);
 
   try {
     // Extract all tags
@@ -196,6 +222,11 @@ export async function processFullResponseActions(
       for (const cmdTag of dyadRunBackendTerminalCmdTags) {
         try {
           const backendPath = path.join(appPath, "backend");
+          // Ensure backend directory exists
+          if (!fs.existsSync(backendPath)) {
+            fs.mkdirSync(backendPath, { recursive: true });
+            logger.log(`Created backend directory: ${backendPath} for backend terminal command`);
+          }
           const cwd = cmdTag.cwd ? path.join(backendPath, cmdTag.cwd) : backendPath;
 
           logger.log(`Executing backend terminal command: ${cmdTag.command} in ${cwd}`);
@@ -211,12 +242,12 @@ export async function processFullResponseActions(
               message: `Backend terminal command failed: ${cmdTag.description || cmdTag.command}`,
               error: `Command execution failed in ${cwd}`,
             });
-            // Add error to backend terminal
+            // Add error to main terminal
             addTerminalOutput(chatWithApp.app.id, "backend", `❌ Error: ${cmdTag.description || cmdTag.command}`, "error");
           } else {
             logger.log(`Backend terminal command succeeded: ${cmdTag.description || cmdTag.command}`);
 
-            // Add command and result to backend terminal
+            // Add command and result to main terminal
             addTerminalOutput(chatWithApp.app.id, "backend", `$ ${cmdTag.command}`, "command");
 
             if (result.trim()) {
@@ -324,6 +355,11 @@ export async function processFullResponseActions(
                terminalType = "backend";
                if (!cmdTag.cwd) {
                  cwd = path.join(appPath, "backend");
+                 // Ensure backend directory exists for backend commands
+                 if (!fs.existsSync(cwd)) {
+                   fs.mkdirSync(cwd, { recursive: true });
+                   logger.log(`Created backend directory: ${cwd} for terminal command execution`);
+                 }
                }
              }
            }
@@ -424,7 +460,7 @@ export async function processFullResponseActions(
           deletedFiles.push(filePath);
 
           // Remove the file from git and commit immediately
-          try {
+          const commitResult = await safeGitOperation(async () => {
             await git.remove({
               fs,
               dir: appPath,
@@ -435,13 +471,8 @@ export async function processFullResponseActions(
               message: `[alifullstack] Deleted file: ${filePath}`,
             });
             logger.log(`Committed file deletion: ${filePath} with hash ${commitHash}`);
-          } catch (gitError) {
-            logger.warn(`Failed to git remove deleted file ${filePath}:`, gitError);
-            warnings.push({
-              message: `Failed to commit deletion of file: ${filePath}`,
-              error: gitError,
-            });
-          }
+            return commitHash;
+          }, "File deletion commit", filePath);
         } else {
           logger.warn(`File to delete does not exist: ${fullFilePath}`);
         }
@@ -484,7 +515,7 @@ export async function processFullResponseActions(
           renamedFiles.push(tag.to);
 
           // Add the new file, remove the old one, and commit immediately
-          try {
+          const renameCommitResult = await safeGitOperation(async () => {
             await git.add({
               fs,
               dir: appPath,
@@ -504,44 +535,29 @@ export async function processFullResponseActions(
               message: `[alifullstack] Renamed file: ${tag.from} -> ${tag.to}`,
             });
             logger.log(`Committed file rename: ${tag.from} -> ${tag.to} with hash ${commitHash}`);
-          } catch (gitError) {
-            logger.warn(`Failed to commit file rename ${tag.from} -> ${tag.to}:`, gitError);
-            warnings.push({
-              message: `Failed to commit rename: ${tag.from} -> ${tag.to}`,
-              error: gitError,
-            });
-          }
+            return commitHash;
+          }, "File rename commit", `${tag.from} -> ${tag.to}`);
         } else {
           logger.warn(`Source file for rename does not exist: ${fromPath}`);
         }
 
         // Handle Supabase functions
         if (isServerFunction(tag.from)) {
-          try {
+          await safeGitOperation(async () => {
             await deleteSupabaseFunction({
               supabaseProjectId: chatWithApp.app.supabaseProjectId!,
               functionName: getFunctionNameFromPath(tag.from),
             });
-          } catch (error) {
-            warnings.push({
-              message: `Failed to delete Supabase function: ${tag.from} as part of renaming ${tag.from} to ${tag.to}`,
-              error: error,
-            });
-          }
+          }, "Supabase function deletion", tag.from);
         }
         if (isServerFunction(tag.to)) {
-          try {
+          await safeGitOperation(async () => {
             await deploySupabaseFunctions({
               supabaseProjectId: chatWithApp.app.supabaseProjectId!,
               functionName: getFunctionNameFromPath(tag.to),
               content: await readFileFromFunctionPath(toPath),
             });
-          } catch (error) {
-            errors.push({
-              message: `Failed to deploy Supabase function: ${tag.to} as part of renaming ${tag.from} to ${tag.to}`,
-              error: error,
-            });
-          }
+          }, "Supabase function deployment", tag.to);
         }
       } catch (error) {
         errors.push({
@@ -549,6 +565,19 @@ export async function processFullResponseActions(
           error: error,
         });
       }
+    }
+
+    // Only remove terminal command tags that don't need UI rendering
+    // Keep dyad-write, dyad-rename, dyad-delete, dyad-add-dependency, dyad-execute-sql, write_to_file, and search_replace tags
+    // as they are rendered by the DyadMarkdownParser as interactive UI components
+    const terminalTagRemovalRegexes = [
+      /<dyad-run-backend-terminal-cmd[^>]*>[\s\S]*?<\/dyad-run-backend-terminal-cmd>/gi,
+      /<dyad-run-frontend-terminal-cmd[^>]*>[\s\S]*?<\/dyad-run-frontend-terminal-cmd>/gi,
+      /<run_terminal_cmd[^>]*>[\s\S]*?<\/run_terminal_cmd>/gi
+    ];
+
+    for (const regex of terminalTagRemovalRegexes) {
+      fullResponse = fullResponse.replace(regex, '');
     }
 
     // Process all dyad-write tags one by one
@@ -576,7 +605,7 @@ export async function processFullResponseActions(
                 writtenFiles.push(filePath);
 
                 // Commit immediately
-                try {
+                await safeGitOperation(async () => {
                   await git.add({
                     fs,
                     dir: appPath,
@@ -587,13 +616,8 @@ export async function processFullResponseActions(
                     message: `[alifullstack] Applied search_replace to: ${filePath}`,
                   });
                   logger.log(`Committed search_replace operation: ${filePath} with hash ${commitHash}`);
-                } catch (gitError) {
-                  logger.warn(`Failed to commit search_replace operation for ${filePath}:`, gitError);
-                  warnings.push({
-                    message: `Failed to commit search_replace to file: ${filePath}`,
-                    error: gitError,
-                  });
-                }
+                  return commitHash;
+                }, "Search replace commit", filePath);
               } else {
                 logger.warn(`Old string not found in file for search_replace: ${fullFilePath}`);
                 warnings.push({
@@ -645,23 +669,19 @@ export async function processFullResponseActions(
           writtenFiles.push(filePath);
 
           // Handle Supabase function deployment
-          if (isServerFunction(filePath) && typeof content === "string") {
-            try {
+          if (isServerFunction(filePath)) {
+            const contentString = typeof content === "string" ? content : content.toString();
+            await safeGitOperation(async () => {
               await deploySupabaseFunctions({
                 supabaseProjectId: chatWithApp.app.supabaseProjectId!,
                 functionName: path.basename(path.dirname(filePath)),
-                content: content,
+                content: contentString,
               });
-            } catch (error) {
-              errors.push({
-                message: `Failed to deploy Supabase function: ${filePath}`,
-                error: error,
-              });
-            }
+            }, "Supabase function deployment", filePath);
           }
 
           // Commit immediately
-          try {
+          await safeGitOperation(async () => {
             await git.add({
               fs,
               dir: appPath,
@@ -672,13 +692,8 @@ export async function processFullResponseActions(
               message: `[alifullstack] Wrote file: ${filePath}`,
             });
             logger.log(`Committed file write: ${filePath} with hash ${commitHash}`);
-          } catch (gitError) {
-            logger.warn(`Failed to commit file write for ${filePath}:`, gitError);
-            warnings.push({
-              message: `Failed to commit file write: ${filePath}`,
-              error: gitError,
-            });
-          }
+            return commitHash;
+          }, "File write commit", filePath);
         }
       } catch (error) {
         errors.push({
@@ -729,23 +744,19 @@ export async function processFullResponseActions(
         writtenFiles.push(filePath);
 
         // Handle Supabase function deployment
-        if (isServerFunction(filePath) && typeof content === "string") {
-          try {
+        if (isServerFunction(filePath)) {
+          const contentString = typeof content === "string" ? content : content.toString();
+          await safeGitOperation(async () => {
             await deploySupabaseFunctions({
               supabaseProjectId: chatWithApp.app.supabaseProjectId!,
               functionName: path.basename(path.dirname(filePath)),
-              content: content,
+              content: contentString,
             });
-          } catch (error) {
-            errors.push({
-              message: `Failed to deploy Supabase function: ${filePath}`,
-              error: error,
-            });
-          }
+          }, "Supabase function deployment", filePath);
         }
 
         // Commit immediately
-        try {
+        await safeGitOperation(async () => {
           await git.add({
             fs,
             dir: appPath,
@@ -756,13 +767,8 @@ export async function processFullResponseActions(
             message: `[alifullstack] Wrote file via write_to_file tag: ${filePath}`,
           });
           logger.log(`Committed write_to_file tag: ${filePath} with hash ${commitHash}`);
-        } catch (gitError) {
-          logger.warn(`Failed to commit write_to_file tag for ${filePath}:`, gitError);
-          warnings.push({
-            message: `Failed to commit write_to_file operation: ${filePath}`,
-            error: gitError,
-          });
-        }
+          return commitHash;
+        }, "Write to file commit", filePath);
       } catch (error) {
         errors.push({
           message: `Failed to write file via write_to_file tag: ${filePath}`,
@@ -791,7 +797,7 @@ export async function processFullResponseActions(
             writtenFiles.push(filePath);
 
             // Commit immediately
-            try {
+            await safeGitOperation(async () => {
               await git.add({
                 fs,
                 dir: appPath,
@@ -802,13 +808,8 @@ export async function processFullResponseActions(
                 message: `[alifullstack] Applied search_replace to: ${filePath}`,
               });
               logger.log(`Committed search_replace: ${filePath} with hash ${commitHash}`);
-            } catch (gitError) {
-              logger.warn(`Failed to commit search_replace for ${filePath}:`, gitError);
-              warnings.push({
-                message: `Failed to commit search_replace operation: ${filePath}`,
-                error: gitError,
-              });
-            }
+              return commitHash;
+            }, "Search replace commit", filePath);
           } else {
             logger.warn(`Old string not found in file for search_replace: ${fullFilePath}`);
             warnings.push({
@@ -901,6 +902,9 @@ export async function processFullResponseActions(
     const safeWarnings = warnings || [];
     const safeErrors = errors || [];
 
+    // Create file operation confirmation messages - only for warnings/errors
+    const fileOperationConfirmations: string[] = [];
+
     const appendedContent = `
     ${safeWarnings
       .map(
@@ -914,6 +918,7 @@ export async function processFullResponseActions(
           `<dyad-output type="error" message="${error.message}">${error.error}</dyad-output>`,
       )
       .join("\n")}
+    ${fileOperationConfirmations.join("\n")}
     `;
     if (appendedContent && appendedContent.trim().length > 0) {
       const safeFullResponse = fullResponse || "";

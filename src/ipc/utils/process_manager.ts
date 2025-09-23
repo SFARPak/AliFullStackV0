@@ -10,7 +10,7 @@ export interface RunningAppInfo {
 }
 
 // Store running app processes
-export const runningApps = new Map<number, RunningAppInfo>();
+export const runningApps = new Map<string | number, RunningAppInfo>();
 // Global counter for process IDs
 let processCounterValue = 0;
 
@@ -114,16 +114,16 @@ export function removeDockerVolumesForApp(appId: number): Promise<void> {
  * Stops an app based on its RunningAppInfo (container vs host) and removes it from the running map.
  */
 export async function stopAppByInfo(
-  appId: number,
+  appKey: string | number,
   appInfo: RunningAppInfo,
 ): Promise<void> {
   if (appInfo.isDocker) {
-    const containerName = appInfo.containerName || `dyad-app-${appId}`;
+    const containerName = appInfo.containerName || `dyad-app-${appKey}`;
     await stopDockerContainer(containerName);
   } else {
     await killProcess(appInfo.process);
   }
-  runningApps.delete(appId);
+  runningApps.delete(appKey);
 }
 
 /**

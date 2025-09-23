@@ -4,6 +4,7 @@ import {
   localTemplatesData,
 } from "../../shared/templates";
 import log from "electron-log";
+import { apiFetch } from "./api_client";
 
 const logger = log.scope("template_utils");
 
@@ -38,7 +39,7 @@ export async function fetchApiTemplates(): Promise<Template[]> {
   // Start new fetch
   apiTemplatesFetchPromise = (async (): Promise<Template[]> => {
     try {
-      const response = await fetch("https://api.alifullstack.alitech.io/v1/templates");
+      const response = await apiFetch("https://api.alifullstack.alitech.io/v1/templates");
       if (!response.ok) {
         throw new Error(
           `Failed to fetch templates: ${response.status} ${response.statusText}`,

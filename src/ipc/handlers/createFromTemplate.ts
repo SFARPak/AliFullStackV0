@@ -1862,16 +1862,44 @@ export async function startFrontendServer(projectPath: string, appId?: number) {
   });
 }
 
-function getStartCommandForFramework(framework: string): string {
+// Function to find an available port starting from a preferred port
+async function findAvailablePort(preferredPort: number): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const net = require('net');
+
+    const server = net.createServer();
+
+    server.listen(preferredPort, () => {
+      const port = server.address().port;
+      server.close(() => resolve(port));
+    });
+
+    server.on('error', (err: any) => {
+      if (err.code === 'EADDRINUSE') {
+        // Port is in use, try the next port
+        logger.info(`Port ${preferredPort} is in use, trying next port...`);
+        findAvailablePort(preferredPort + 1).then(resolve).catch(reject);
+      } else {
+        reject(err);
+      }
+    });
+  });
+}
+
+export async function getStartCommandForFramework(framework: string): Promise<string> {
   switch (framework) {
     case "nodejs":
-      return "npm start";
+      const nodePort = await findAvailablePort(3000);
+      return `npm start -- --port ${nodePort}`;
     case "django":
-      return "python manage.py runserver";
+      const djangoPort = await findAvailablePort(8000);
+      return `python manage.py runserver 0.0.0.0:${djangoPort}`;
     case "fastapi":
-      return "uvicorn main:app --reload --host 0.0.0.0 --port 8000";
+      const fastapiPort = await findAvailablePort(8000);
+      return `uvicorn main:app --reload --host 0.0.0.0 --port ${fastapiPort}`;
     case "flask":
-      return "python -c 'import os; os.environ.setdefault(\"FLASK_APP\", \"app.py\"); os.system(\"flask run --host=0.0.0.0 --port=5000\")'";
+      const flaskPort = await findAvailablePort(5000);
+      return `python -c 'import os; os.environ.setdefault("FLASK_APP", "app.py"); os.system("flask run --host=0.0.0.0 --port=${flaskPort}")'`;
     default:
       logger.warn(`Unknown framework for server start: ${framework}`);
       return "";
