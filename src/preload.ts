@@ -118,6 +118,11 @@ const validInvokeChannels = [
   "prompts:create",
   "prompts:update",
   "prompts:delete",
+  // Roo Code authentication
+  "roocode:login",
+  "roocode:logout",
+  "roocode:auth-status",
+  "roocode:auth-callback",
   // Test-only channels
   // These should ALWAYS be guarded with IS_TEST_BUILD in the main process.
   // We can't detect with IS_TEST_BUILD in the preload script because

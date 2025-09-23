@@ -18,6 +18,7 @@ import { BackupManager } from "./backup_manager";
 import { getDatabasePath, initializeDatabase } from "./db";
 import { UserSettings } from "./lib/schemas";
 import { handleNeonOAuthReturn } from "./neon_admin/neon_return_handler";
+import { handleRooCodeAuthCallback } from "./ipc/handlers/roocode_auth_handlers";
 
 log.errorHandler.startCatching();
 log.eventLogger.startLogging();
@@ -60,7 +61,7 @@ export async function onReady() {
   initializeDatabase();
   const settings = readSettings();
   await onFirstRunMaybe(settings);
-  createWindow();
+  await createWindow();
 
   logger.info("Auto-update enabled=", settings.enableAutoUpdate);
   if (settings.enableAutoUpdate) {
@@ -128,8 +129,9 @@ declare global {
 }
 
 let mainWindow: BrowserWindow | null = null;
+let pendingDeepLink: string | null = null;
 
-const createWindow = () => {
+const createWindow = async () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: process.env.NODE_ENV === "development" ? 1280 : 960,
@@ -163,6 +165,12 @@ const createWindow = () => {
     // Open the DevTools.
     mainWindow.webContents.openDevTools();
   }
+
+  // Process any pending deep link after window is created
+  if (pendingDeepLink) {
+    await handleDeepLinkReturn(pendingDeepLink);
+    pendingDeepLink = null;
+  }
 };
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -170,24 +178,32 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
 } else {
-  app.on("second-instance", (_event, commandLine, _workingDirectory) => {
+  app.on("second-instance", async (_event, commandLine, _workingDirectory) => {
     // Someone tried to run a second instance, we should focus our window.
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
+      // the commandLine is array of strings in which last element is deep link url
+      await handleDeepLinkReturn(commandLine.pop()!);
+    } else {
+      // Store the deep link to be processed when window is created
+      pendingDeepLink = commandLine.pop()!;
     }
-    // the commandLine is array of strings in which last element is deep link url
-    handleDeepLinkReturn(commandLine.pop()!);
   });
   app.whenReady().then(onReady);
 }
 
 // Handle the protocol. In this case, we choose to show an Error Box.
-app.on("open-url", (event, url) => {
-  handleDeepLinkReturn(url);
+app.on("open-url", async (event, url) => {
+  if (mainWindow) {
+    await handleDeepLinkReturn(url);
+  } else {
+    // Store the deep link to be processed when window is created
+    pendingDeepLink = url;
+  }
 });
 
-function handleDeepLinkReturn(url: string) {
+async function handleDeepLinkReturn(url: string) {
   // example url: "alifullstack://supabase-oauth-return?token=a&refreshToken=b"
   let parsed: URL;
   try {
@@ -263,6 +279,31 @@ function handleDeepLinkReturn(url: string) {
     });
     return;
   }
+  // alifullstack://roocode-auth?code=...&state=...
+  if (parsed.hostname === "roocode-auth") {
+    const code = parsed.searchParams.get("code");
+    const state = parsed.searchParams.get("state");
+    if (!code || !state) {
+      dialog.showErrorBox("Invalid URL", "Expected code and state parameters");
+      return;
+    }
+    try {
+      await handleRooCodeAuthCallback(code, state);
+      // Send message to renderer to trigger re-render
+      mainWindow?.webContents.send("deep-link-received", {
+        type: parsed.hostname,
+      });
+      // Focus the main window to bring app to front after authentication
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+        mainWindow.show();
+      }
+    } catch (error: any) {
+      dialog.showErrorBox("Authentication Error", `Failed to complete Roo Code authentication: ${error.message}`);
+    }
+    return;
+  }
   dialog.showErrorBox("Invalid deep link URL", url);
 }
 
@@ -275,11 +316,11 @@ app.on("window-all-closed", () => {
   }
 });
 
-app.on("activate", () => {
+app.on("activate", async () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+    await createWindow();
   }
 });
 

@@ -32,6 +32,7 @@ import { registerPortalHandlers } from "./handlers/portal_handlers";
 import { registerPromptHandlers } from "./handlers/prompt_handlers";
 import { registerHelpBotHandlers } from "./handlers/help_bot_handlers";
 import { registerTerminalHandlers, addTerminalOutput } from "./handlers/terminal_handlers";
+import { registerRooCodeAuthHandlers } from "./handlers/roocode_auth_handlers";
 import { AppOutput } from "./ipc_types";
 
 export function registerIpcHandlers() {
@@ -69,4 +70,5 @@ export function registerIpcHandlers() {
   registerPromptHandlers();
   registerHelpBotHandlers();
   registerTerminalHandlers();
+  registerRooCodeAuthHandlers();
 }

@@ -1,190 +1,87 @@
 import { useState, useEffect } from "react";
-import { LogIn, LogOut, User, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CheckCircle, LogIn } from "lucide-react";
 import { IpcClient } from "@/ipc/ipc_client";
-import { showError } from "@/lib/toast";
-import { useDeepLink } from "@/hooks/useDeepLink";
 
-interface RooCodeConfigurationProps {
-  provider: string;
-}
-
-interface AuthState {
-  isAuthenticated: boolean;
-  userInfo?: {
-    name?: string;
-    email?: string;
-    picture?: string;
-  };
-}
-
-export function RooCodeConfiguration({ provider }: RooCodeConfigurationProps) {
-  const [authState, setAuthState] = useState<AuthState>({ isAuthenticated: false });
+export function RooCodeConfiguration() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
 
   // Check authentication status on component mount
   useEffect(() => {
-    // Small delay to ensure IPC client is initialized
-    const timer = setTimeout(() => {
-      checkAuthStatus();
-    }, 100);
-    return () => clearTimeout(timer);
+    checkAuthStatus();
   }, []);
-
-  // Listen for authentication callback
-  useDeepLink("roocode-auth-callback", async (data: { code: string; state: string }) => {
-    try {
-      if (!(window as any).electron || !(window as any).electron.ipcRenderer) {
-        console.error("IPC renderer not available for auth callback");
-        return;
-      }
-
-      const ipcClient = IpcClient.getInstance();
-      await ipcClient.roocodeAuthCallback(data.code, data.state);
-      await checkAuthStatus(); // Refresh auth status
-    } catch (error) {
-      console.error("Failed to handle Roo Code auth callback:", error);
-      showError("Failed to complete Roo Code authentication");
-    }
-  });
 
   const checkAuthStatus = async () => {
     try {
-      setIsInitializing(true);
-      // Check if IPC client is available
-      if (!(window as any).electron || !(window as any).electron.ipcRenderer) {
-        console.warn("IPC renderer not available yet, retrying...");
-        setTimeout(() => checkAuthStatus(), 500);
-        return;
-      }
-
+      setIsLoading(true);
       const ipcClient = IpcClient.getInstance();
-      const status = await ipcClient.roocodeAuthStatus();
-      setAuthState(status);
+      const authStatus = await ipcClient.roocodeAuthStatus();
+      setIsAuthenticated(authStatus?.isAuthenticated || false);
     } catch (error) {
-      console.error("Failed to check Roo Code auth status:", error);
-      setAuthState({ isAuthenticated: false });
+      console.error("Failed to check Roo Code authentication status:", error);
+      setIsAuthenticated(false);
     } finally {
-      setIsInitializing(false);
+      setIsLoading(false);
     }
   };
 
-  const handleLogin = async () => {
+  const handleSignIn = async () => {
     try {
       setIsLoading(true);
-      if (!(window as any).electron || !(window as any).electron.ipcRenderer) {
-        showError("IPC renderer not available. Please refresh the page.");
-        return;
-      }
-
       const ipcClient = IpcClient.getInstance();
+      // This will trigger the OAuth flow
       await ipcClient.roocodeLogin();
-      // The login process will open a browser window and handle the callback
+      // After sign in, check status again
+      setTimeout(checkAuthStatus, 1000);
     } catch (error) {
-      console.error("Failed to initiate Roo Code login:", error);
-      showError("Failed to initiate Roo Code authentication");
+      console.error("Failed to initiate Roo Code sign in:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      setIsLoading(true);
-      if (!(window as any).electron || !(window as any).electron.ipcRenderer) {
-        showError("IPC renderer not available. Please refresh the page.");
-        return;
-      }
-
-      const ipcClient = IpcClient.getInstance();
-      await ipcClient.roocodeLogout();
-      await checkAuthStatus(); // Refresh auth status
-    } catch (error) {
-      console.error("Failed to logout from Roo Code:", error);
-      showError("Failed to logout from Roo Code");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (isInitializing) {
+  if (isAuthenticated) {
     return (
-      <div className="space-y-4">
-        <div className="border rounded-lg px-4 py-4 bg-(--background-lightest)">
-          <div className="flex items-center justify-center">
-            <div className="text-sm text-muted-foreground">Checking authentication status...</div>
-          </div>
-        </div>
-      </div>
+      <Alert variant="default" className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
+        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+        <AlertTitle className="text-green-800 dark:text-green-200">
+          Connected to Roo Code Cloud
+        </AlertTitle>
+        <AlertDescription className="text-green-700 dark:text-green-300">
+          You are successfully authenticated with Roo Code Cloud. You can now use Roo Code Cloud models.
+        </AlertDescription>
+      </Alert>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="border rounded-lg px-4 py-4 bg-(--background-lightest)">
-        <h3 className="text-lg font-medium mb-4">Roo Code Cloud Authentication</h3>
+      <Alert variant="default">
+        <LogIn className="h-4 w-4" />
+        <AlertTitle>Roo Code Cloud Authentication Required</AlertTitle>
+        <AlertDescription>
+          To use Roo Code Cloud models, you need to authenticate with Roo Code Cloud.
+          This provides access to premium AI models with enhanced capabilities.
+        </AlertDescription>
+      </Alert>
 
-        {authState.isAuthenticated ? (
-          <div className="space-y-4">
-            <Alert>
-              <User className="h-4 w-4" />
-              <AlertTitle className="flex items-center justify-between">
-                <span>Authenticated</span>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleLogout}
-                  disabled={isLoading}
-                  className="flex items-center gap-1 h-7 px-2"
-                >
-                  <LogOut className="h-4 w-4" />
-                  {isLoading ? "Logging out..." : "Logout"}
-                </Button>
-              </AlertTitle>
-              <AlertDescription>
-                <div className="space-y-2">
-                  {authState.userInfo?.name && (
-                    <p><strong>Name:</strong> {authState.userInfo.name}</p>
-                  )}
-                  {authState.userInfo?.email && (
-                    <p><strong>Email:</strong> {authState.userInfo.email}</p>
-                  )}
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-2">
-                    You are successfully authenticated with Roo Code Cloud.
-                  </p>
-                </div>
-              </AlertDescription>
-            </Alert>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Not Authenticated</AlertTitle>
-              <AlertDescription>
-                You need to authenticate with Roo Code Cloud to use Roo Code models.
-                Click the button below to open your browser and sign in.
-              </AlertDescription>
-            </Alert>
-
-            <Button
-              onClick={handleLogin}
-              disabled={isLoading}
-              className="flex items-center gap-2"
-            >
-              <LogIn className="h-4 w-4" />
-              {isLoading ? "Opening browser..." : "Authenticate with Roo Code"}
-            </Button>
-
-            <p className="text-xs text-muted-foreground">
-              This will open your default browser to authenticate with Roo Code Cloud.
-              After authentication, you'll be redirected back to AliFullStack.
-            </p>
-          </div>
-        )}
+      <div className="flex justify-center">
+        <Button
+          onClick={handleSignIn}
+          disabled={isLoading}
+          className="flex items-center gap-2"
+        >
+          <LogIn className="h-4 w-4" />
+          {isLoading ? "Connecting..." : "Connect to Roo Code Cloud"}
+        </Button>
       </div>
+
+      <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+        Authentication is secure and only grants access to AI model services.
+        Your data remains private and is not shared.
+      </p>
     </div>
   );
 }

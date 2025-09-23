@@ -168,23 +168,7 @@ async function handleRooCodeLogin(): Promise<void> {
 
     logger.info(`Attempting to open authentication URL: ${authUrl}`);
 
-    // For development/demo purposes, we'll simulate successful authentication
-    // In production, this would open the browser for real authentication
-    if (process.env.NODE_ENV === 'development') {
-      logger.info("Development mode: Simulating successful authentication");
-      // Simulate authentication callback after a short delay
-      setTimeout(() => {
-        const mockCode = 'dev-auth-code-' + Date.now();
-        const mockState = state;
-        // Trigger the callback as if the user completed authentication
-        handleRooCodeCallback(mockCode, mockState).catch(err => {
-          logger.error("Mock authentication callback failed:", err);
-        });
-      }, 2000);
-      return;
-    }
-
-    // Open browser for authentication
+    // Open browser for authentication (always use real authentication, not mock)
     try {
       await shell.openExternal(authUrl);
       logger.info("Opened Roo Code authentication URL in browser");
@@ -198,7 +182,7 @@ async function handleRooCodeLogin(): Promise<void> {
   }
 }
 
-async function handleRooCodeCallback(code: string, state: string): Promise<void> {
+export async function handleRooCodeAuthCallback(code: string, state: string): Promise<void> {
   try {
     // Verify state parameter
     const authData = loadAuthData();
@@ -209,17 +193,7 @@ async function handleRooCodeCallback(code: string, state: string): Promise<void>
     }
 
     // Exchange code for credentials
-    // For development mode with mock codes, create mock credentials
-    let credentials: AuthCredentials;
-    if (code.startsWith('dev-auth-code-')) {
-      logger.info("Using mock credentials for development");
-      credentials = {
-        clientToken: 'mock-client-token-' + Date.now(),
-        sessionId: 'mock-session-id-' + Date.now(),
-      };
-    } else {
-      credentials = await clerkSignIn(code);
-    }
+    credentials = await clerkSignIn(code);
 
     // Save credentials
     saveAuthData({ credentials });
@@ -282,34 +256,18 @@ async function handleRooCodeAuthStatus(): Promise<AuthState> {
     }
 
     // Try to get a fresh session token to verify authentication
-    // For mock credentials, skip the API calls
     let userInfo: any;
-    if (credentials.clientToken.startsWith('mock-client-token-')) {
-      logger.info("Using mock user info for development");
-      userInfo = {
-        id: 'dev-user-id',
-        first_name: 'Dev',
-        last_name: 'User',
-        email_addresses: [{
-          id: 'primary-email-id',
-          email_address: 'dev@example.com'
-        }],
-        primary_email_address_id: 'primary-email-id',
-        image_url: 'https://via.placeholder.com/150'
-      };
-    } else {
-      try {
-        await clerkCreateSessionToken(credentials); // Verify credentials are still valid
-        userInfo = await clerkGetUserInfo(credentials);
-      } catch (error) {
-        logger.warn("Failed to refresh session token, treating as unauthenticated:", error);
-        // Clear invalid credentials
-        const filePath = getAuthStoragePath();
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-        return { isAuthenticated: false };
+    try {
+      await clerkCreateSessionToken(credentials); // Verify credentials are still valid
+      userInfo = await clerkGetUserInfo(credentials);
+    } catch (error) {
+      logger.warn("Failed to refresh session token, treating as unauthenticated:", error);
+      // Clear invalid credentials
+      const filePath = getAuthStoragePath();
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
       }
+      return { isAuthenticated: false };
     }
 
     const authState: AuthState = {
@@ -346,6 +304,6 @@ export function registerRooCodeAuthHandlers(): void {
 
   // Handle deep link callback for authentication
   ipcMain.handle("roocode:auth-callback", async (_, code: string, state: string) => {
-    await handleRooCodeCallback(code, state);
+    await handleRooCodeAuthCallback(code, state);
   });
 }

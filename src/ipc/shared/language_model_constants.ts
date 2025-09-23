@@ -341,6 +341,26 @@ export const MODEL_OPTIONS: Record<string, ModelOption[]> = {
       temperature: 0,
     },
   ],
+  roo: [
+    {
+      name: "xai/grok-code-fast-1",
+      displayName: "Grok Code Fast",
+      description: "A reasoning model that is blazing fast and excels at agentic coding, accessible for free through Roo Code Cloud for a limited time.",
+      maxOutputTokens: 16_384,
+      contextWindow: 262_144,
+      temperature: 0,
+      dollarSigns: 0,
+    },
+    {
+      name: "roo/code-supernova",
+      displayName: "Code Supernova",
+      description: "A versatile agentic coding stealth model that supports image inputs, accessible for free through Roo Code Cloud for a limited time.",
+      maxOutputTokens: 16_384,
+      contextWindow: 200_000,
+      temperature: 0,
+      dollarSigns: 0,
+    },
+  ],
 };
 
 export const TURBO_MODELS: LanguageModel[] = [
@@ -447,6 +467,12 @@ export const CLOUD_PROVIDERS: Record<
     websiteUrl: "https://console.aws.amazon.com/bedrock/",
     gatewayPrefix: "bedrock/",
     secondary: true,
+  },
+  roo: {
+    displayName: "Roo Code Cloud",
+    hasFreeTier: true,
+    websiteUrl: "https://roocode.com",
+    gatewayPrefix: "roo/",
   },
 };
 
