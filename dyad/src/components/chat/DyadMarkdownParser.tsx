@@ -200,7 +200,7 @@ function parseCustomTags(content: string): ContentPiece[] {
   ];
 
   const tagPattern = new RegExp(
-    `<(${customTagNames.join("|")})\\s*([^>]*)>(.*?)<\\/\\1>`,
+    `<(${customTagNames.join("|")})\\s*([^>]*)>([\\s\\S]*?)<\\/\\1>`,
     "gs",
   );
 
