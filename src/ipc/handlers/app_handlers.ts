@@ -254,6 +254,11 @@ async function executeAppLocalNode({
 
       const backendTerminalType = isPythonBackend ? "backend" : "main";
 
+      logger.info(`[BACKEND_ROUTING] App ${appId} - Backend command: "${backendCommand}"`);
+      logger.info(`[BACKEND_ROUTING] App ${appId} - Backend framework: ${backendFramework || 'unknown'}`);
+      logger.info(`[BACKEND_ROUTING] App ${appId} - Python backend detected: ${isPythonBackend}`);
+      logger.info(`[BACKEND_ROUTING] App ${appId} - Routing backend to ${backendTerminalType.toUpperCase()} terminal`);
+
       const backendProcess = spawn(backendCommand, [], {
         cwd: backendPath,
         shell: true,
@@ -299,6 +304,10 @@ async function executeAppLocalNode({
                             frontendCommand.toLowerCase().includes("webpack");
 
       const frontendTerminalType = isNodeFrontend ? "frontend" : "main";
+
+      logger.info(`[FRONTEND_ROUTING] App ${appId} - Frontend command: "${frontendCommand}"`);
+      logger.info(`[FRONTEND_ROUTING] App ${appId} - Node.js frontend detected: ${isNodeFrontend}`);
+      logger.info(`[FRONTEND_ROUTING] App ${appId} - Routing frontend to ${frontendTerminalType.toUpperCase()} terminal`);
 
       const frontendProcess = spawn(frontendCommand, [], {
         cwd: frontendPath,
@@ -369,6 +378,11 @@ async function executeAppLocalNode({
                        command.toLowerCase().includes("react") ||
                        command.toLowerCase().includes("webpack");
 
+  logger.info(`[APP_STARTUP_ROUTING] App ${appId} - Command: "${command}"`);
+  logger.info(`[APP_STARTUP_ROUTING] App ${appId} - Working dir: ${workingDir}`);
+  logger.info(`[APP_STARTUP_ROUTING] App ${appId} - Python command detected: ${isPythonCommand}`);
+  logger.info(`[APP_STARTUP_ROUTING] App ${appId} - Node.js command detected: ${isNodeCommand}`);
+
   // Determine terminal type based on command content
   let terminalType: "frontend" | "backend" | "main" = "main";
   if (isPythonCommand) {
@@ -377,15 +391,18 @@ async function executeAppLocalNode({
     if (hasBackend) {
       workingDir = backendPath;
     }
+    logger.info(`[APP_STARTUP_ROUTING] App ${appId} - Routing to BACKEND terminal (Python command)`);
   } else if (isNodeCommand) {
     terminalType = "frontend";
     // Adjust working directory for Node.js commands
     if (hasFrontend) {
       workingDir = frontendPath;
     }
+    logger.info(`[APP_STARTUP_ROUTING] App ${appId} - Routing to FRONTEND terminal (Node.js command)`);
   } else {
     // Default terminal type based on working directory
     terminalType = workingDir === backendPath ? "backend" : workingDir === frontendPath ? "frontend" : "main";
+    logger.info(`[APP_STARTUP_ROUTING] App ${appId} - Routing to ${terminalType.toUpperCase()} terminal (default)`);
   }
 
   const spawnedProcess = spawn(command, [], {

@@ -1,16 +1,27 @@
-import { appOutputAtom, frontendTerminalOutputAtom, backendTerminalOutputAtom } from "@/atoms/appAtoms";
+import { appOutputAtom, frontendTerminalOutputAtom, backendTerminalOutputAtom, selectedAppIdAtom } from "@/atoms/appAtoms";
 import { useAtomValue } from "jotai";
+import { useLoadApp } from "@/hooks/useLoadApp";
 
 // Console component with side-by-side terminal support
 export const Console = () => {
   const appOutput = useAtomValue(appOutputAtom);
   const frontendTerminalOutput = useAtomValue(frontendTerminalOutputAtom);
   const backendTerminalOutput = useAtomValue(backendTerminalOutputAtom);
+  const selectedAppId = useAtomValue(selectedAppIdAtom);
+  const { app } = useLoadApp(selectedAppId);
 
   // Determine which terminals to show
-  const hasFrontend = frontendTerminalOutput.length > 0;
-  const hasBackend = backendTerminalOutput.length > 0;
+  const hasFrontendOutput = frontendTerminalOutput.length > 0;
+  const hasBackendOutput = backendTerminalOutput.length > 0;
   const hasMain = appOutput.length > 0;
+
+  // Check if app has frontend/backend folders (always show terminals for apps that have these folders)
+  const hasFrontendFolder = app?.files?.some((file: string) => file.startsWith("frontend/")) || false;
+  const hasBackendFolder = app?.files?.some((file: string) => file.startsWith("backend/")) || false;
+
+  // Terminals are visible if they have content OR if the app has the corresponding folder
+  const hasFrontend = hasFrontendOutput || hasFrontendFolder;
+  const hasBackend = hasBackendOutput || hasBackendFolder;
 
   // Show all terminals if any terminal has content (to ensure Frontend is visible when Backend/System have content)
   const totalTerminals = hasFrontend + hasBackend + hasMain;
@@ -24,19 +35,27 @@ export const Console = () => {
   ].filter(Boolean);
   const terminalCount = activeTerminals.length;
 
-  // Terminal rendering component
-  const TerminalPanel = ({ title, outputs, color }: { title: string; outputs: any[]; color: string }) => (
-    <div className="flex flex-col h-full">
-      <div className={`px-3 py-2 bg-${color}-100 dark:bg-${color}-900 text-${color}-800 dark:text-${color}-200 text-xs font-medium border-b border-border`}>
-        {title} ({outputs.length})
+  // Terminal rendering component with proper color classes
+  const TerminalPanel = ({ title, outputs, color }: { title: string; outputs: any[]; color: "green" | "orange" | "blue" }) => {
+    const colorClasses = {
+      green: "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200",
+      orange: "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200",
+      blue: "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200",
+    };
+
+    return (
+      <div className="flex flex-col h-full">
+        <div className={`px-3 py-2 ${colorClasses[color]} text-xs font-medium border-b border-border`}>
+          {title} ({outputs.length})
+        </div>
+        <div className="font-mono text-xs px-4 flex-1 overflow-auto">
+          {outputs.map((output, index) => (
+            <div key={index}>{output.message}</div>
+          ))}
+        </div>
       </div>
-      <div className="font-mono text-xs px-4 flex-1 overflow-auto">
-        {outputs.map((output, index) => (
-          <div key={index}>{output.message}</div>
-        ))}
-      </div>
-    </div>
-  );
+    );
+  };
 
   // Single terminal layout
   if (terminalCount === 1) {

@@ -346,6 +346,11 @@ export async function processFullResponseActions(
                                 cleanCommand.toLowerCase().includes("react") ||
                                 cleanCommand.toLowerCase().includes("webpack");
 
+           logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Command: "${cleanCommand}"`);
+           logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Chat mode: ${chatMode}`);
+           logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Python command detected: ${isPythonCommand}`);
+           logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Node.js command detected: ${isNodeCommand}`);
+
            if (isPythonCommand) {
              terminalType = "backend";
              if (!cmdTag.cwd) {
@@ -356,6 +361,7 @@ export async function processFullResponseActions(
                  logger.log(`Created backend directory: ${cwd} for Python command execution`);
                }
              }
+             logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to BACKEND terminal (Python command)`);
            } else if (isNodeCommand) {
              terminalType = "frontend";
              if (!cmdTag.cwd) {
@@ -366,18 +372,21 @@ export async function processFullResponseActions(
                  logger.log(`Created frontend directory: ${cwd} for Node.js command execution`);
                }
              }
+             logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to FRONTEND terminal (Node.js command)`);
            } else if (chatMode === "ask") {
              // For ask mode, route to frontend terminal (most common for general commands)
              terminalType = "frontend";
              if (!cmdTag.cwd) {
                cwd = path.join(appPath, "frontend");
              }
+             logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to FRONTEND terminal (ask mode default)`);
            } else if (chatMode === "backend") {
              terminalType = "backend";
              // For backend mode, adjust cwd to backend directory if not already specified
              if (!cmdTag.cwd) {
                cwd = path.join(appPath, "backend");
              }
+             logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to BACKEND terminal (backend mode)`);
            } else if (chatMode === "fullstack") {
              // For fullstack mode, check for Node.js commands first, then default to backend
              if (isNodeCommand) {
@@ -385,6 +394,7 @@ export async function processFullResponseActions(
                if (!cmdTag.cwd) {
                  cwd = path.join(appPath, "frontend");
                }
+               logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to FRONTEND terminal (fullstack + Node.js)`);
              } else {
                terminalType = "backend";
                if (!cmdTag.cwd) {
@@ -395,7 +405,10 @@ export async function processFullResponseActions(
                    logger.log(`Created backend directory: ${cwd} for terminal command execution`);
                  }
                }
+               logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to BACKEND terminal (fullstack default)`);
              }
+           } else {
+             logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to ${terminalType.toUpperCase()} terminal (default)`);
            }
 
            logger.log(`Executing general terminal command: ${cleanCommand} in ${cwd} (routing to ${terminalType} terminal) - isPython: ${isPythonCommand}, isNode: ${isNodeCommand}`);
