@@ -328,7 +328,45 @@ export async function processFullResponseActions(
            let terminalType: "frontend" | "backend" = "backend"; // default
            let cwd = cmdTag.cwd ? path.join(appPath, cmdTag.cwd) : appPath;
 
-           if (chatMode === "ask") {
+           // Check if this is a Python command - always route to backend
+           const isPythonCommand = cleanCommand.toLowerCase().includes("python") ||
+                                  cleanCommand.toLowerCase().includes("pip") ||
+                                  cleanCommand.toLowerCase().includes("conda") ||
+                                  cleanCommand.toLowerCase().includes("venv") ||
+                                  cleanCommand.toLowerCase().includes("py ");
+
+           // Check if this is a Node.js command - always route to frontend
+           const isNodeCommand = cleanCommand.toLowerCase().includes("npm") ||
+                                cleanCommand.toLowerCase().includes("yarn") ||
+                                cleanCommand.toLowerCase().includes("pnpm") ||
+                                cleanCommand.toLowerCase().includes("node") ||
+                                cleanCommand.toLowerCase().includes("npx") ||
+                                cleanCommand.toLowerCase().includes("vite") ||
+                                cleanCommand.toLowerCase().includes("next") ||
+                                cleanCommand.toLowerCase().includes("react") ||
+                                cleanCommand.toLowerCase().includes("webpack");
+
+           if (isPythonCommand) {
+             terminalType = "backend";
+             if (!cmdTag.cwd) {
+               cwd = path.join(appPath, "backend");
+               // Ensure backend directory exists for Python commands
+               if (!fs.existsSync(cwd)) {
+                 fs.mkdirSync(cwd, { recursive: true });
+                 logger.log(`Created backend directory: ${cwd} for Python command execution`);
+               }
+             }
+           } else if (isNodeCommand) {
+             terminalType = "frontend";
+             if (!cmdTag.cwd) {
+               cwd = path.join(appPath, "frontend");
+               // Ensure frontend directory exists for Node.js commands
+               if (!fs.existsSync(cwd)) {
+                 fs.mkdirSync(cwd, { recursive: true });
+                 logger.log(`Created frontend directory: ${cwd} for Node.js command execution`);
+               }
+             }
+           } else if (chatMode === "ask") {
              // For ask mode, route to frontend terminal (most common for general commands)
              terminalType = "frontend";
              if (!cmdTag.cwd) {
@@ -341,12 +379,8 @@ export async function processFullResponseActions(
                cwd = path.join(appPath, "backend");
              }
            } else if (chatMode === "fullstack") {
-             // For fullstack mode, try to determine based on command content or default to backend
-             // Commands related to frontend development go to frontend terminal
-             const frontendCommands = ["npm", "yarn", "pnpm", "vite", "next", "react", "webpack"];
-             const isFrontendCommand = frontendCommands.some(cmd => cleanCommand.toLowerCase().includes(cmd));
-
-             if (isFrontendCommand) {
+             // For fullstack mode, check for Node.js commands first, then default to backend
+             if (isNodeCommand) {
                terminalType = "frontend";
                if (!cmdTag.cwd) {
                  cwd = path.join(appPath, "frontend");
