@@ -403,8 +403,9 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
     );
   }
 
-  // Display message if no app is selected
-  if (selectedAppId === null) {
+  // Display message if no app is selected and no app URL is available
+  // This prevents showing the message during app startup transitions
+  if (selectedAppId === null && !appUrl && !loading) {
     return (
       <div className="p-4 text-gray-500 dark:text-gray-400">
         Select an app to see the preview.
