@@ -3,13 +3,15 @@ import log from "electron-log";
 
 const logger = log.scope("runShellCommand");
 
-export function runShellCommand(command: string): Promise<string | null> {
-  logger.log(`Running command: ${command}`);
+export function runShellCommand(command: string, cwd?: string): Promise<string | null> {
+  logger.log(`Running command: ${command}${cwd ? ` in ${cwd}` : ''}`);
   return new Promise((resolve) => {
     let output = "";
+    let stderrOutput = "";
     const process = spawn(command, {
       shell: true,
       stdio: ["ignore", "pipe", "pipe"], // ignore stdin, pipe stdout/stderr
+      cwd: cwd, // Set working directory if provided
     });
 
     process.stdout?.on("data", (data) => {
@@ -17,6 +19,7 @@ export function runShellCommand(command: string): Promise<string | null> {
     });
 
     process.stderr?.on("data", (data) => {
+      stderrOutput += data.toString();
       // Log stderr but don't treat it as a failure unless the exit code is non-zero
       logger.warn(`Stderr from "${command}": ${data.toString().trim()}`);
     });
@@ -33,7 +36,7 @@ export function runShellCommand(command: string): Promise<string | null> {
         );
         resolve(output.trim()); // Command succeeded, return trimmed output
       } else {
-        logger.error(`Command "${command}" failed with code ${code}`);
+        logger.error(`Command "${command}" failed with code ${code}. Stderr: ${stderrOutput.trim()}`);
         resolve(null); // Command failed
       }
     });

@@ -6,6 +6,7 @@ import {
 } from "@/atoms/appAtoms";
 import { useAtomValue, useSetAtom, useAtom } from "jotai";
 import { useEffect, useRef, useState } from "react";
+import { useRunApp } from "@/hooks/useRunApp";
 import {
   ArrowLeft,
   ArrowRight,
@@ -39,7 +40,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useRunApp } from "@/hooks/useRunApp";
 import { useShortcut } from "@/hooks/useShortcut";
 
 interface ErrorBannerProps {
@@ -135,7 +135,8 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
   const selectedChatId = useAtomValue(selectedChatIdAtom);
   const { streamMessage } = useStreamChat();
   const { routes: availableRoutes } = useParseRouter(selectedAppId);
-  const { restartApp } = useRunApp();
+  const { restartApp, loading: appLoading } = useRunApp();
+  const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null);
 
   // Navigation state
   const [isComponentSelectorInitialized, setIsComponentSelectorInitialized] =
@@ -288,6 +289,31 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
       setCanGoForward(false);
     }
   }, [appUrl]);
+
+  // Track loading start time
+  useEffect(() => {
+    if (!appUrl && selectedAppId && !errorMessage) {
+      setLoadingStartTime(Date.now());
+    } else {
+      setLoadingStartTime(null);
+    }
+  }, [appUrl, selectedAppId, errorMessage]);
+
+  // Helper function to get loading message based on duration
+  const getLoadingMessage = () => {
+    if (!loadingStartTime) return "Starting your app server...";
+
+    const elapsed = Date.now() - loadingStartTime;
+    const seconds = Math.floor(elapsed / 1000);
+
+    if (seconds < 30) {
+      return "Starting your app server...";
+    } else if (seconds < 60) {
+      return "Starting your app server... (This is taking longer than usual)";
+    } else {
+      return "Starting your app server... (Taking longer than expected. Check the terminal for any errors)";
+    }
+  };
 
   // Function to activate component selector in the iframe
   const handleActivateComponentSelector = () => {
@@ -553,8 +579,8 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
         {!appUrl ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4 bg-gray-50 dark:bg-gray-950">
             <Loader2 className="w-8 h-8 animate-spin text-gray-400 dark:text-gray-500" />
-            <p className="text-gray-600 dark:text-gray-300">
-              Starting your app server...
+            <p className="text-gray-600 dark:text-gray-300 text-center max-w-xs">
+              {getLoadingMessage()}
             </p>
           </div>
         ) : (

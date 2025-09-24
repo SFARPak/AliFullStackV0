@@ -27,10 +27,17 @@ export default function ChatPage() {
     if (!chatId && chats.length && !loading) {
       // Not a real navigation, just a redirect, when the user navigates to /chat
       // without a chatId, we redirect to the first chat
-      setSelectedAppId(chats[0].appId);
+      // Only set the app if we don't already have one selected (to prevent clearing)
+      if (!selectedAppId) {
+        setSelectedAppId(chats[0].appId);
+      }
       navigate({ to: "/chat", search: { id: chats[0].id }, replace: true });
+    } else if (!chatId && !chats.length && !loading && selectedAppId) {
+      // If we have a selected app but no chats for it, don't clear the selection
+      // This prevents the app from being unselected when there are temporary issues
+      console.log(`Keeping selected app ${selectedAppId} even though no chats found`);
     }
-  }, [chatId, chats, loading, navigate]);
+  }, [chatId, chats, loading, navigate, selectedAppId, setSelectedAppId]);
 
   useEffect(() => {
     if (isPreviewOpen) {

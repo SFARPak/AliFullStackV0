@@ -19,25 +19,38 @@ import { isServerFunction } from "../../supabase_admin/supabase_utils";
 import { UserSettings } from "../../lib/schemas";
 import { gitCommit } from "../utils/git_utils";
 
-// Helper function to handle git operations with timeout
+// Helper function to handle git operations with timeout and retry
 function createSafeGitOperation(warnings: Output[], errors: Output[]) {
   return async function safeGitOperation(operation: () => Promise<any>, operationName: string, filePath?: string): Promise<any> {
-    try {
-      // Set a timeout for git operations (30 seconds)
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error(`${operationName} timed out after 30 seconds`)), 30000);
-      });
+    const maxRetries = 3;
+    const retryDelay = 1000; // 1 second
 
-      const result = await Promise.race([operation(), timeoutPromise]);
-      return result;
-    } catch (error) {
-      const errorMessage = `${operationName} failed${filePath ? ` for ${filePath}` : ''}: ${error}`;
-      logger.warn(errorMessage);
-      warnings.push({
-        message: errorMessage,
-        error: error,
-      });
-      return null;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Set a timeout for git operations (30 seconds)
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error(`${operationName} timed out after 30 seconds`)), 30000);
+        });
+
+        const result = await Promise.race([operation(), timeoutPromise]);
+        return result;
+      } catch (error) {
+        const errorMessage = `${operationName} failed${filePath ? ` for ${filePath}` : ''}: ${error}`;
+
+        // If this is the last attempt, add to warnings/errors and return null
+        if (attempt === maxRetries) {
+          logger.warn(`${errorMessage} (after ${maxRetries} attempts)`);
+          warnings.push({
+            message: `${errorMessage} (after ${maxRetries} attempts)`,
+            error: error,
+          });
+          return null;
+        }
+
+        // Otherwise, log the retry attempt and wait before retrying
+        logger.warn(`${errorMessage} - Retrying attempt ${attempt + 1}/${maxRetries} in ${retryDelay}ms`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      }
     }
   };
 }
@@ -235,7 +248,7 @@ export async function processFullResponseActions(
           // We need to import and use the backendTerminalOutputAtom
           // For now, we'll use a more direct approach by sending IPC messages to update the UI
 
-          const result = await runShellCommand(`cd "${cwd}" && ${cmdTag.command}`);
+          const result = await runShellCommand(cmdTag.command, cwd);
 
           if (result === null) {
             errors.push({
@@ -277,7 +290,7 @@ export async function processFullResponseActions(
 
           logger.log(`Executing frontend terminal command: ${cmdTag.command} in ${cwd}`);
 
-          const result = await runShellCommand(`cd "${cwd}" && ${cmdTag.command}`);
+          const result = await runShellCommand(cmdTag.command, cwd);
 
           if (result === null) {
             errors.push({
@@ -343,7 +356,7 @@ export async function processFullResponseActions(
 
          try {
            // Determine which terminal to route to based on command content and chat mode
-           let terminalType: "frontend" | "backend" = "backend"; // default
+           let terminalType: "frontend" | "backend" = "frontend"; // default to frontend for simple commands
            let cwd = cmdTag.cwd ? path.join(appPath, cmdTag.cwd) : appPath;
 
            // Enhanced command detection with better patterns
@@ -429,7 +442,7 @@ export async function processFullResponseActions(
 
            logger.log(`Executing general terminal command: ${cleanCommand} in ${cwd} (routing to ${terminalType} terminal) - isPython: ${isPythonCommand}, isNode: ${isNodeCommand}`);
 
-           const result = await runShellCommand(`cd "${cwd}" && ${cleanCommand}`);
+           const result = await runShellCommand(cleanCommand, cwd);
 
            if (result === null) {
              errors.push({

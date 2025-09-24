@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { atom } from "jotai";
 import { IpcClient } from "@/ipc/ipc_client";
 import {
@@ -23,6 +23,24 @@ export function useRunApp() {
   const setPreviewPanelKey = useSetAtom(previewPanelKeyAtom);
   const appId = useAtomValue(selectedAppIdAtom);
   const setPreviewErrorMessage = useSetAtom(previewErrorMessageAtom);
+  const startupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clear startup timeout when app URL is successfully set
+  const clearStartupTimeout = useCallback(() => {
+    if (startupTimeoutRef.current) {
+      clearTimeout(startupTimeoutRef.current);
+      startupTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Set startup timeout to show error if app doesn't start within 2 minutes
+  const setStartupTimeout = useCallback((appId: number) => {
+    clearStartupTimeout(); // Clear any existing timeout
+    startupTimeoutRef.current = setTimeout(() => {
+      console.warn(`[useRunApp] App ${appId} startup timeout - no URL detected within 2 minutes`);
+      setPreviewErrorMessage("App startup timed out. The server may have failed to start. Check the terminal output for errors.");
+    }, 2 * 60 * 1000); // 2 minutes
+  }, [clearStartupTimeout, setPreviewErrorMessage]);
 
   const processProxyServerOutput = (output: AppOutput) => {
     const matchesProxyServerStart = output.message.includes(
@@ -38,11 +56,36 @@ export function useRunApp() {
       if (proxyUrlMatch && proxyUrlMatch[1]) {
         const proxyUrl = proxyUrlMatch[1];
         const originalUrl = originalUrlMatch && originalUrlMatch[1];
+        console.log(`[useRunApp] Setting app URL: proxy=${proxyUrl}, original=${originalUrl}, appId=${output.appId}`);
+        clearStartupTimeout();
         setAppUrlObj({
           appUrl: proxyUrl,
           appId: output.appId,
           originalUrl: originalUrl!,
         });
+      }
+    }
+
+    // Also check for server startup messages that might indicate the app is ready
+    // This handles cases where the proxy server message format might be different
+    const serverReadyPatterns = [
+      /Local:\s+(http:\/\/localhost:\d+)/i,
+      /Server running at (http:\/\/localhost:\d+)/i,
+      /App is running on (http:\/\/localhost:\d+)/i,
+      /Development server started.*(http:\/\/\S+)/i,
+    ];
+
+    for (const pattern of serverReadyPatterns) {
+      const match = output.message.match(pattern);
+      if (match && match[1]) {
+        console.log(`[useRunApp] Detected server ready from pattern: ${pattern}, URL: ${match[1]}`);
+        clearStartupTimeout();
+        setAppUrlObj({
+          appUrl: match[1],
+          appId: output.appId,
+          originalUrl: match[1],
+        });
+        break;
       }
     }
   };
@@ -76,6 +119,8 @@ export function useRunApp() {
   const runApp = useCallback(
     async (appId: number) => {
       setLoading(true);
+      clearStartupTimeout(); // Clear any existing timeout
+      setStartupTimeout(appId); // Set new timeout for this app startup
       try {
         const ipcClient = IpcClient.getInstance();
         console.debug("Running app", appId);
@@ -103,6 +148,7 @@ export function useRunApp() {
         setPreviewErrorMessage(undefined);
       } catch (error) {
         console.error(`Error running app ${appId}:`, error);
+        clearStartupTimeout(); // Clear timeout on error
         setPreviewErrorMessage(
           error instanceof Error ? error.message : error?.toString(),
         );
@@ -110,7 +156,7 @@ export function useRunApp() {
         setLoading(false);
       }
     },
-    [processAppOutput],
+    [processAppOutput, clearStartupTimeout, setStartupTimeout],
   );
 
   const stopApp = useCallback(async (appId: number) => {
@@ -149,6 +195,8 @@ export function useRunApp() {
         return;
       }
       setLoading(true);
+      clearStartupTimeout(); // Clear any existing timeout
+      setStartupTimeout(appId); // Set new timeout for this app restart
       try {
         const ipcClient = IpcClient.getInstance();
         console.debug(
@@ -188,6 +236,7 @@ export function useRunApp() {
         );
       } catch (error) {
         console.error(`Error restarting app ${appId}:`, error);
+        clearStartupTimeout(); // Clear timeout on error
         setPreviewErrorMessage(
           error instanceof Error ? error.message : error?.toString(),
         );
@@ -204,12 +253,21 @@ export function useRunApp() {
       setPreviewPanelKey,
       processAppOutput,
       onHotModuleReload,
+      clearStartupTimeout,
+      setStartupTimeout,
     ],
   );
 
   const refreshAppIframe = useCallback(async () => {
     setPreviewPanelKey((prevKey) => prevKey + 1);
   }, [setPreviewPanelKey]);
+
+  // Cleanup timeout on unmount or appId change
+  useEffect(() => {
+    return () => {
+      clearStartupTimeout();
+    };
+  }, [clearStartupTimeout]);
 
   return {
     loading,
