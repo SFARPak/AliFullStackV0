@@ -313,102 +313,115 @@ export async function processFullResponseActions(
      // Handle general terminal command tags - route based on chat mode
      if (dyadRunTerminalCmdTags.length > 0) {
        for (const cmdTag of dyadRunTerminalCmdTags) {
-         // Clean up the command - remove any "cmd:" prefix that AI might add
+         // Clean up the command - remove common prefixes that AI might add
          let cleanCommand = cmdTag.command.trim();
-         if (cleanCommand.startsWith("cmd:")) {
-           cleanCommand = cleanCommand.substring(4).trim();
+
+         // Remove various command prefixes
+         const prefixes = ['cmd:', 'command:', 'run:', 'execute:', 'terminal:', 'shell:'];
+         for (const prefix of prefixes) {
+           if (cleanCommand.toLowerCase().startsWith(prefix)) {
+             cleanCommand = cleanCommand.substring(prefix.length).trim();
+             break; // Only remove one prefix
+           }
          }
-         if (cleanCommand.startsWith("command:")) {
-           cleanCommand = cleanCommand.substring(8).trim();
+
+         // Also remove markdown code block markers if present
+         if (cleanCommand.startsWith('```') && cleanCommand.includes('\n')) {
+           const lines = cleanCommand.split('\n');
+           if (lines[0].startsWith('```')) {
+             lines.shift(); // Remove opening ```
+           }
+           if (lines.length > 0 && lines[lines.length - 1].startsWith('```')) {
+             lines.pop(); // Remove closing ```
+           }
+           cleanCommand = lines.join('\n').trim();
+         }
+         // Remove single backticks if wrapping the entire command
+         if (cleanCommand.startsWith('`') && cleanCommand.endsWith('`') && cleanCommand.split('`').length === 3) {
+           cleanCommand = cleanCommand.slice(1, -1).trim();
          }
 
          try {
-
-           // Determine which terminal to route to based on chat mode
+           // Determine which terminal to route to based on command content and chat mode
            let terminalType: "frontend" | "backend" = "backend"; // default
            let cwd = cmdTag.cwd ? path.join(appPath, cmdTag.cwd) : appPath;
 
-           // Check if this is a Python command - always route to backend
-           const isPythonCommand = cleanCommand.toLowerCase().includes("python") ||
-                                  cleanCommand.toLowerCase().includes("pip") ||
-                                  cleanCommand.toLowerCase().includes("conda") ||
-                                  cleanCommand.toLowerCase().includes("venv") ||
-                                  cleanCommand.toLowerCase().includes("py ");
+           // Enhanced command detection with better patterns
+           const isPythonCommand = /\b(python|pip|conda|venv|py |python3|pip3|django|flask|fastapi)\b/i.test(cleanCommand);
+           const isNodeCommand = /\b(npm|yarn|pnpm|node|npx|vite|next|react|webpack|create-react-app|vue|angular|typescript|tsc)\b/i.test(cleanCommand);
+           const isGoCommand = /\b(go|go run|go build|go mod|go get)\b/i.test(cleanCommand);
+           const isRustCommand = /\b(cargo|cargo build|cargo run|cargo test)\b/i.test(cleanCommand);
 
-           // Check if this is a Node.js command - always route to frontend
-           const isNodeCommand = cleanCommand.toLowerCase().includes("npm") ||
-                                cleanCommand.toLowerCase().includes("yarn") ||
-                                cleanCommand.toLowerCase().includes("pnpm") ||
-                                cleanCommand.toLowerCase().includes("node") ||
-                                cleanCommand.toLowerCase().includes("npx") ||
-                                cleanCommand.toLowerCase().includes("vite") ||
-                                cleanCommand.toLowerCase().includes("next") ||
-                                cleanCommand.toLowerCase().includes("react") ||
-                                cleanCommand.toLowerCase().includes("webpack");
+           // Backend commands (Python, Go, Rust, database, server commands)
+           const isBackendCommand = isPythonCommand || isGoCommand || isRustCommand ||
+                                  /\b(server|backend|api|database|db|postgres|mysql|sqlite|mongodb|redis)\b/i.test(cleanCommand);
+
+           // Frontend commands (explicitly Node.js related or client-side)
+           const isFrontendCommand = isNodeCommand ||
+                                   /\b(frontend|client|web|browser|html|css|scss|sass|tailwind|webpack|babel)\b/i.test(cleanCommand);
 
            logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Command: "${cleanCommand}"`);
            logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Chat mode: ${chatMode}`);
-           logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Python command detected: ${isPythonCommand}`);
-           logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Node.js command detected: ${isNodeCommand}`);
+           logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Python: ${isPythonCommand}, Node.js: ${isNodeCommand}, Go: ${isGoCommand}, Rust: ${isRustCommand}`);
+           logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Backend: ${isBackendCommand}, Frontend: ${isFrontendCommand}`);
 
-           if (isPythonCommand) {
+           // Priority-based routing: explicit tech detection first, then general command patterns
+           if (isPythonCommand || isGoCommand || isRustCommand) {
              terminalType = "backend";
              if (!cmdTag.cwd) {
                cwd = path.join(appPath, "backend");
-               // Ensure backend directory exists for Python commands
                if (!fs.existsSync(cwd)) {
                  fs.mkdirSync(cwd, { recursive: true });
-                 logger.log(`Created backend directory: ${cwd} for Python command execution`);
+                 logger.log(`Created backend directory: ${cwd} for command execution`);
                }
              }
-             logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to BACKEND terminal (Python command)`);
+             logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to BACKEND terminal (tech-specific command)`);
            } else if (isNodeCommand) {
              terminalType = "frontend";
              if (!cmdTag.cwd) {
                cwd = path.join(appPath, "frontend");
-               // Ensure frontend directory exists for Node.js commands
                if (!fs.existsSync(cwd)) {
                  fs.mkdirSync(cwd, { recursive: true });
-                 logger.log(`Created frontend directory: ${cwd} for Node.js command execution`);
+                 logger.log(`Created frontend directory: ${cwd} for command execution`);
                }
              }
              logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to FRONTEND terminal (Node.js command)`);
-           } else if (chatMode === "ask") {
-             // For ask mode, route to frontend terminal (most common for general commands)
+           } else if (isBackendCommand && !isFrontendCommand) {
+             terminalType = "backend";
+             if (!cmdTag.cwd) {
+               cwd = path.join(appPath, "backend");
+             }
+             logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to BACKEND terminal (backend-related command)`);
+           } else if (isFrontendCommand) {
              terminalType = "frontend";
              if (!cmdTag.cwd) {
                cwd = path.join(appPath, "frontend");
              }
-             logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to FRONTEND terminal (ask mode default)`);
-           } else if (chatMode === "backend") {
-             terminalType = "backend";
-             // For backend mode, adjust cwd to backend directory if not already specified
-             if (!cmdTag.cwd) {
-               cwd = path.join(appPath, "backend");
-             }
-             logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to BACKEND terminal (backend mode)`);
-           } else if (chatMode === "fullstack") {
-             // For fullstack mode, check for Node.js commands first, then default to backend
-             if (isNodeCommand) {
+             logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to FRONTEND terminal (frontend-related command)`);
+           } else {
+             // Fallback based on chat mode
+             if (chatMode === "ask") {
                terminalType = "frontend";
                if (!cmdTag.cwd) {
                  cwd = path.join(appPath, "frontend");
                }
-               logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to FRONTEND terminal (fullstack + Node.js)`);
-             } else {
+               logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to FRONTEND terminal (ask mode default)`);
+             } else if (chatMode === "backend") {
                terminalType = "backend";
                if (!cmdTag.cwd) {
                  cwd = path.join(appPath, "backend");
-                 // Ensure backend directory exists for backend commands
-                 if (!fs.existsSync(cwd)) {
-                   fs.mkdirSync(cwd, { recursive: true });
-                   logger.log(`Created backend directory: ${cwd} for terminal command execution`);
-                 }
+               }
+               logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to BACKEND terminal (backend mode)`);
+             } else if (chatMode === "fullstack") {
+               // For fullstack, default to backend for unknown commands
+               terminalType = "backend";
+               if (!cmdTag.cwd) {
+                 cwd = path.join(appPath, "backend");
                }
                logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to BACKEND terminal (fullstack default)`);
+             } else {
+               logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to ${terminalType.toUpperCase()} terminal (fallback default)`);
              }
-           } else {
-             logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to ${terminalType.toUpperCase()} terminal (default)`);
            }
 
            logger.log(`Executing general terminal command: ${cleanCommand} in ${cwd} (routing to ${terminalType} terminal) - isPython: ${isPythonCommand}, isNode: ${isNodeCommand}`);
