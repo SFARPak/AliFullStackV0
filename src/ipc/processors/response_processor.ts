@@ -356,7 +356,7 @@ export async function processFullResponseActions(
 
          try {
            // Determine which terminal to route to based on command content and chat mode
-           let terminalType: "frontend" | "backend" = "frontend"; // default to frontend for simple commands
+           let terminalType: "main" | "frontend" | "backend" = "main"; // default to main (system) for simple bash commands
            let cwd = cmdTag.cwd ? path.join(appPath, cmdTag.cwd) : appPath;
 
            // Enhanced command detection with better patterns
@@ -383,7 +383,7 @@ export async function processFullResponseActions(
 
            // Priority-based routing: explicit tech detection first, then general command patterns
            if (isPythonCommand || isGoCommand || isRustCommand) {
-             terminalType = "backend";
+             terminalType = "backend"; // Backend commands go to backend terminal (which will be combined with main)
              if (!cmdTag.cwd) {
                cwd = path.join(appPath, "backend");
                if (!fs.existsSync(cwd)) {
@@ -403,7 +403,7 @@ export async function processFullResponseActions(
              }
              logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to FRONTEND terminal (Node.js command)`);
            } else if (isBackendCommand && !isFrontendCommand) {
-             terminalType = "backend";
+             terminalType = "backend"; // Backend commands go to backend terminal (combined with main)
              if (!cmdTag.cwd) {
                cwd = path.join(appPath, "backend");
              }
@@ -415,29 +415,9 @@ export async function processFullResponseActions(
              }
              logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to FRONTEND terminal (frontend-related command)`);
            } else {
-             // Fallback based on chat mode
-             if (chatMode === "ask") {
-               terminalType = "frontend";
-               if (!cmdTag.cwd) {
-                 cwd = path.join(appPath, "frontend");
-               }
-               logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to FRONTEND terminal (ask mode default)`);
-             } else if (chatMode === "backend") {
-               terminalType = "backend";
-               if (!cmdTag.cwd) {
-                 cwd = path.join(appPath, "backend");
-               }
-               logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to BACKEND terminal (backend mode)`);
-             } else if (chatMode === "fullstack") {
-               // For fullstack, default to backend for unknown commands
-               terminalType = "backend";
-               if (!cmdTag.cwd) {
-                 cwd = path.join(appPath, "backend");
-               }
-               logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to BACKEND terminal (fullstack default)`);
-             } else {
-               logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to ${terminalType.toUpperCase()} terminal (fallback default)`);
-             }
+             // Fallback: basic bash commands (ls, cd, mkdir, etc.) go to main system terminal
+             terminalType = "main";
+             logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Routing to MAIN/SYSTEM terminal (basic bash command)`);
            }
 
            logger.log(`Executing general terminal command: ${cleanCommand} in ${cwd} (routing to ${terminalType} terminal) - isPython: ${isPythonCommand}, isNode: ${isNodeCommand}`);

@@ -100,15 +100,18 @@ export const Console = () => {
 
   // Terminals are visible if they have content OR if the app has the corresponding folder
   const hasFrontend = hasFrontendOutput || hasFrontendFolder;
-  const hasBackend = hasBackendOutput || hasBackendFolder;
+  // Backend terminal shows if it has output OR if there's backend folder AND main terminal has backend-prefixed content
+  const hasBackend = hasBackendOutput || (hasBackendFolder && appOutput.some(output => output.message.includes('[BACKEND]')));
+  // Main (System) terminal shows if it has any content (including combined backend output)
+  const hasSystem = hasMain;
 
   // Show all terminals if any terminal has content (to ensure Frontend is visible when Backend/System have content)
-  const totalTerminals = (hasFrontend ? 1 : 0) + (hasBackend ? 1 : 0) + (hasMain ? 1 : 0);
+  const totalTerminals = (hasFrontend ? 1 : 0) + (hasBackend ? 1 : 0) + (hasSystem ? 1 : 0);
   const showAllTerminals = totalTerminals > 0;
 
   // Count active terminals
   const activeTerminals = [
-    (hasMain || showAllTerminals) && "main",
+    (hasSystem || showAllTerminals) && "main",
     (hasFrontend || showAllTerminals) && "frontend",
     (hasBackend || showAllTerminals) && "backend"
   ].filter(Boolean);
@@ -160,6 +163,9 @@ export const Console = () => {
     if (hasBackend) {
       return <TerminalPanel title="Backend" outputs={backendTerminalOutput} color="orange" />;
     }
+    if (hasSystem) {
+      return <TerminalPanel title="System" outputs={appOutput} color="blue" />;
+    }
     return <TerminalPanel title="System" outputs={appOutput} color="blue" />;
   }
 
@@ -179,7 +185,7 @@ export const Console = () => {
         </ResizableContainer>
       );
     }
-    if (hasMain && hasFrontend) {
+    if (hasSystem && hasFrontend) {
       // System and Frontend side by side
       return (
         <ResizableContainer>
@@ -193,7 +199,7 @@ export const Console = () => {
         </ResizableContainer>
       );
     }
-    if (hasMain && hasBackend) {
+    if (hasSystem && hasBackend) {
       // System and Backend side by side
       return (
         <ResizableContainer>
