@@ -245,6 +245,15 @@ async function executeAppLocalNode({
         backendCommand = getCommand({ installCommand, startCommand }); // Fallback
       }
 
+      // Apply intelligent terminal routing for backend commands
+      const isPythonBackend = backendCommand.toLowerCase().includes("python") ||
+                             backendCommand.toLowerCase().includes("pip") ||
+                             backendCommand.toLowerCase().includes("conda") ||
+                             backendCommand.toLowerCase().includes("venv") ||
+                             backendCommand.toLowerCase().includes("py ");
+
+      const backendTerminalType = isPythonBackend ? "backend" : "main";
+
       const backendProcess = spawn(backendCommand, [], {
         cwd: backendPath,
         shell: true,
@@ -265,10 +274,10 @@ async function executeAppLocalNode({
           appId,
           isNeon,
           event,
-          terminalType: "backend",
+          terminalType: backendTerminalType,
         });
 
-        logger.info(`Backend server started for fullstack app ${appId} (PID: ${backendProcess.pid})`);
+        logger.info(`Backend server started for fullstack app ${appId} (PID: ${backendProcess.pid}) - routing to ${backendTerminalType} terminal`);
       }
     } catch (error) {
       logger.error(`Failed to start backend server for fullstack app ${appId}:`, error);
@@ -277,6 +286,20 @@ async function executeAppLocalNode({
     // Start frontend server
     try {
       const frontendCommand = "npm run dev --port 32100";
+
+      // Apply intelligent terminal routing for frontend commands
+      const isNodeFrontend = frontendCommand.toLowerCase().includes("npm") ||
+                            frontendCommand.toLowerCase().includes("yarn") ||
+                            frontendCommand.toLowerCase().includes("pnpm") ||
+                            frontendCommand.toLowerCase().includes("node") ||
+                            frontendCommand.toLowerCase().includes("npx") ||
+                            frontendCommand.toLowerCase().includes("vite") ||
+                            frontendCommand.toLowerCase().includes("next") ||
+                            frontendCommand.toLowerCase().includes("react") ||
+                            frontendCommand.toLowerCase().includes("webpack");
+
+      const frontendTerminalType = isNodeFrontend ? "frontend" : "main";
+
       const frontendProcess = spawn(frontendCommand, [], {
         cwd: frontendPath,
         shell: true,
@@ -298,10 +321,10 @@ async function executeAppLocalNode({
           appId,
           isNeon,
           event,
-          terminalType: "frontend",
+          terminalType: frontendTerminalType,
         });
 
-        logger.info(`Frontend server started for fullstack app ${appId} (PID: ${frontendProcess.pid})`);
+        logger.info(`Frontend server started for fullstack app ${appId} (PID: ${frontendProcess.pid}) - routing to ${frontendTerminalType} terminal`);
       }
     } catch (error) {
       logger.error(`Failed to start frontend server for fullstack app ${appId}:`, error);
@@ -328,6 +351,43 @@ async function executeAppLocalNode({
   }
 
   const command = getCommand({ installCommand, startCommand });
+
+  // Apply intelligent terminal routing for app startup commands
+  const isPythonCommand = command.toLowerCase().includes("python") ||
+                         command.toLowerCase().includes("pip") ||
+                         command.toLowerCase().includes("conda") ||
+                         command.toLowerCase().includes("venv") ||
+                         command.toLowerCase().includes("py ");
+
+  const isNodeCommand = command.toLowerCase().includes("npm") ||
+                       command.toLowerCase().includes("yarn") ||
+                       command.toLowerCase().includes("pnpm") ||
+                       command.toLowerCase().includes("node") ||
+                       command.toLowerCase().includes("npx") ||
+                       command.toLowerCase().includes("vite") ||
+                       command.toLowerCase().includes("next") ||
+                       command.toLowerCase().includes("react") ||
+                       command.toLowerCase().includes("webpack");
+
+  // Determine terminal type based on command content
+  let terminalType: "frontend" | "backend" | "main" = "main";
+  if (isPythonCommand) {
+    terminalType = "backend";
+    // Adjust working directory for Python commands
+    if (hasBackend) {
+      workingDir = backendPath;
+    }
+  } else if (isNodeCommand) {
+    terminalType = "frontend";
+    // Adjust working directory for Node.js commands
+    if (hasFrontend) {
+      workingDir = frontendPath;
+    }
+  } else {
+    // Default terminal type based on working directory
+    terminalType = workingDir === backendPath ? "backend" : workingDir === frontendPath ? "frontend" : "main";
+  }
+
   const spawnedProcess = spawn(command, [], {
     cwd: workingDir,
     shell: true,
@@ -356,7 +416,6 @@ async function executeAppLocalNode({
     isDocker: false,
   });
 
-  const terminalType = workingDir === backendPath ? "backend" : "frontend";
   listenToProcess({
     process: spawnedProcess,
     appId,
