@@ -348,9 +348,12 @@ export async function processFullResponseActions(
 
            // Enhanced command detection with better patterns
            const isPythonCommand = /\b(python|pip|conda|venv|py |python3|pip3|django|flask|fastapi)\b/i.test(cleanCommand);
-           const isNodeCommand = /\b(npm|yarn|pnpm|node|npx|vite|next|react|webpack|create-react-app|vue|angular|typescript|tsc)\b/i.test(cleanCommand);
+           const isNodeCommand = /\b(npm|yarn|pnpm|node|npx|vite|next|react|webpack|create-react-app|vue|angular|typescript|tsc|pnpm|yarn)\b/i.test(cleanCommand);
            const isGoCommand = /\b(go|go run|go build|go mod|go get)\b/i.test(cleanCommand);
            const isRustCommand = /\b(cargo|cargo build|cargo run|cargo test)\b/i.test(cleanCommand);
+
+           // Additional check for Vite-specific commands and dev servers
+           const isViteCommand = /\b(vite|vite\.config|\.bin\/vite)\b/i.test(cleanCommand);
 
            // Backend commands (Python, Go, Rust, database, server commands)
            const isBackendCommand = isPythonCommand || isGoCommand || isRustCommand ||
@@ -362,7 +365,7 @@ export async function processFullResponseActions(
 
            logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Command: "${cleanCommand}"`);
            logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Chat mode: ${chatMode}`);
-           logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Python: ${isPythonCommand}, Node.js: ${isNodeCommand}, Go: ${isGoCommand}, Rust: ${isRustCommand}`);
+           logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Python: ${isPythonCommand}, Node.js: ${isNodeCommand}, Go: ${isGoCommand}, Rust: ${isRustCommand}, Vite: ${isViteCommand}`);
            logger.info(`[CHAT_COMMAND_ROUTING] Chat ${chatId} - Backend: ${isBackendCommand}, Frontend: ${isFrontendCommand}`);
 
            // Priority-based routing: explicit tech detection first, then general command patterns
