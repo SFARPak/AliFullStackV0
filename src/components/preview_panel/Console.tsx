@@ -12,8 +12,16 @@ export const Console = () => {
   const hasBackend = backendTerminalOutput.length > 0;
   const hasMain = appOutput.length > 0;
 
+  // Show all terminals if any terminal has content (to ensure Frontend is visible when Backend/System have content)
+  const totalTerminals = hasFrontend + hasBackend + hasMain;
+  const showAllTerminals = totalTerminals > 0;
+
   // Count active terminals
-  const activeTerminals = [hasMain && "main", hasFrontend && "frontend", hasBackend && "backend"].filter(Boolean);
+  const activeTerminals = [
+    (hasMain || showAllTerminals) && "main",
+    (hasFrontend || showAllTerminals) && "frontend",
+    (hasBackend || showAllTerminals) && "backend"
+  ].filter(Boolean);
   const terminalCount = activeTerminals.length;
 
   // Terminal rendering component

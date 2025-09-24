@@ -398,7 +398,7 @@ export async function processFullResponseActions(
              }
            }
 
-           logger.log(`Executing general terminal command: ${cleanCommand} in ${cwd} (routing to ${terminalType} terminal)`);
+           logger.log(`Executing general terminal command: ${cleanCommand} in ${cwd} (routing to ${terminalType} terminal) - isPython: ${isPythonCommand}, isNode: ${isNodeCommand}`);
 
            const result = await runShellCommand(`cd "${cwd}" && ${cleanCommand}`);
 
