@@ -40,46 +40,42 @@ export function addTerminalOutput(appId: number, terminal: "main" | "frontend" |
       appOutputType = "stdout";
   }
 
-  const outputItem = {
+  // Create output item for system console (complete log)
+  const systemOutputItem = {
     message: formattedMessage,
     timestamp: Date.now(),
     type: appOutputType,
     appId
   };
 
-  if (terminal === "main") {
-    // Main (system) terminal - add to the general app output
-    const currentOutput = store.get(appOutputAtom);
-    store.set(appOutputAtom, [...currentOutput, outputItem]);
+  // Always add to system console (complete log)
+  const systemCurrentOutput = store.get(appOutputAtom);
+  store.set(appOutputAtom, [...systemCurrentOutput, systemOutputItem]);
 
-    // Auto-switch to main terminal if it's empty
-    if (currentOutput.length === 0) {
-      store.set(activeTerminalAtom, "main");
-    }
-  } else if (terminal === "frontend") {
-    const currentOutput = store.get(frontendTerminalOutputAtom);
-    store.set(frontendTerminalOutputAtom, [...currentOutput, outputItem]);
+  // Also add to specific terminal based on command type
+  if (terminal === "frontend") {
+    // Add to frontend terminal
+    const frontendCurrent = store.get(frontendTerminalOutputAtom);
+    store.set(frontendTerminalOutputAtom, [...frontendCurrent, systemOutputItem]);
 
     // Auto-switch to frontend terminal if it's empty
-    if (currentOutput.length === 0) {
+    if (frontendCurrent.length === 0) {
       store.set(activeTerminalAtom, "frontend");
     }
   } else if (terminal === "backend") {
-    // Backend terminal - combine with main (system) terminal
-    const currentOutput = store.get(appOutputAtom);
-    const backendMessage = `[BACKEND] ${formattedMessage}`; // Prefix backend messages
-    const backendOutputItem = {
-      ...outputItem,
-      message: backendMessage
-    };
-    store.set(appOutputAtom, [...currentOutput, backendOutputItem]);
-
-    // Also keep in separate backend atom for backward compatibility if needed
+    // Add to backend terminal
     const backendCurrent = store.get(backendTerminalOutputAtom);
-    store.set(backendTerminalOutputAtom, [...backendCurrent, outputItem]);
+    store.set(backendTerminalOutputAtom, [...backendCurrent, systemOutputItem]);
 
-    // Auto-switch to main terminal (where backend output appears)
-    if (currentOutput.length === 0) {
+    // Auto-switch to backend terminal if it's empty
+    if (backendCurrent.length === 0) {
+      store.set(activeTerminalAtom, "backend");
+    }
+  } else if (terminal === "main") {
+    // Main/bash commands - only in system console, no specific terminal
+
+    // Auto-switch to main terminal if it's empty
+    if (systemCurrentOutput.length === 0) {
       store.set(activeTerminalAtom, "main");
     }
   }
