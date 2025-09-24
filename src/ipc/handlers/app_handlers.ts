@@ -455,6 +455,9 @@ function listenToProcess({
   event: Electron.IpcMainInvokeEvent;
   terminalType?: "frontend" | "backend" | "main";
 }) {
+  // Import the terminal output function for specific terminal routing
+  const { addTerminalOutput } = require("../handlers/terminal_handlers");
+
   // Log output
   spawnedProcess.stdout?.on("data", async (data) => {
     const message = util.stripVTControlCharacters(data.toString());
@@ -486,12 +489,18 @@ function listenToProcess({
         appId,
       });
     } else {
-      // Normal stdout handling
-      safeSend(event.sender, "app:output", {
-        type: "stdout",
-        message,
-        appId,
-      });
+      // Route output based on terminal type
+      if (terminalType === "frontend" || terminalType === "backend") {
+        // Send to specific terminal using the Jotai atoms approach
+        addTerminalOutput(appId, terminalType, message, "output");
+      } else {
+        // Send to main app output (System Console) using IPC approach
+        safeSend(event.sender, "app:output", {
+          type: "stdout",
+          message,
+          appId,
+        });
+      }
 
       const urlMatch = message.match(/(https?:\/\/localhost:\d+\/?)/);
       if (urlMatch) {
@@ -513,11 +522,19 @@ function listenToProcess({
     logger.error(
       `App ${appId} (PID: ${spawnedProcess.pid}) stderr: ${message}`,
     );
-    safeSend(event.sender, "app:output", {
-      type: "stderr",
-      message,
-      appId,
-    });
+
+    // Route error output based on terminal type
+    if (terminalType === "frontend" || terminalType === "backend") {
+      // Send to specific terminal using the Jotai atoms approach
+      addTerminalOutput(appId, terminalType, message, "error");
+    } else {
+      // Send to main app output (System Console) using IPC approach
+      safeSend(event.sender, "app:output", {
+        type: "stderr",
+        message,
+        appId,
+      });
+    }
   });
 
   // Handle process exit/close
