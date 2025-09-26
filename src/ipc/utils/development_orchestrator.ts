@@ -571,6 +571,8 @@ Please generate a well-structured backend application with:
 IMPORTANT: Use proper dyad-write tags to create files. Always include the "path" attribute.
 For backend files, use paths like "backend/main.py" or "backend/server.js" etc.
 
+**DO NOT attempt to run backend servers manually.** The system automatically handles server startup when users click the "Run App" button. Focus ONLY on creating code files. The system will automatically detect the framework and start the appropriate server.
+
 Current AI_RULES.md contains development guidelines. Follow them strictly.
 `;
 
